@@ -3,7 +3,7 @@ import random
 
 class AdasLibraryInterface:
     """
-    Interface gráfica simplificada para o jogo Ada's Library.
+    Interface gráfica.
     """
     def __init__(self):
         # Configuração da janela principal

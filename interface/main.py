@@ -20,6 +20,9 @@ class AdasLibraryInterface:
         self.message_frame.pack(pady=5)
 
         # Frames principais
+        self.selected_cards = []
+        self.selected_books = []
+        self.selected_objetctive = [] 
         self.opponent_frame = Frame(self.main_window, bg="#315931", pady=10)
         self.objective_frame = Frame(self.main_window, bg="#315931", pady=10)
         self.your_books_frame = Frame(self.main_window, bg="#315931", pady=10)
@@ -66,12 +69,15 @@ class AdasLibraryInterface:
         # Criação dos livros do objetivo
         self.objective_books = []
         objective_colors = random.sample(list(self.colors.keys()), 6)
-        for color in objective_colors:
+        for i, color in enumerate(objective_colors):
             book = Frame(self.objective_frame, width=60, height=90, bg=self.colors[color],
-                         highlightbackground="black", highlightthickness=2)
+                        highlightbackground="black", highlightthickness=2)
             book.pack_propagate(False)
             book.pack(side=LEFT, padx=5)
+            # Adiciona o bind que estava faltando aqui:
+            book.bind("<Button-1>", self.criar_funcao_clique_objetivo(i))
             self.objective_books.append(book)
+
 
         # Criação dos seus livros
         self.your_books = []
@@ -105,9 +111,6 @@ class AdasLibraryInterface:
         Button(self.buttons_frame, text="Descartar", bg="#FF6B6B", fg="white",
               font="Arial 12", padx=10, pady=5, command=self.descartar).pack(side=LEFT, padx=10)
 
-        Button(self.buttons_frame, text="Cancelar", bg="#4ECDC4", fg="white",
-              font="Arial 12", padx=10, pady=5, command=self.cancelar).pack(side=LEFT, padx=10)
-
         Button(self.buttons_frame, text="Conceder", bg="#6D6875", fg="white",
               font="Arial 12", padx=10, pady=5, command=self.conceder).pack(side=LEFT, padx=10)
 
@@ -132,7 +135,54 @@ class AdasLibraryInterface:
         Método chamado quando um livro é clicado.
         """
         self.mostrar_mensagem(f"Livro {indice} clicado")
-        # Lógica para lidar com o clique no livro
+
+        livro = self.your_books[indice]
+
+        if indice in self.selected_books:
+            # Desselecionar
+            livro.config(highlightbackground="black", highlightthickness=2)
+            self.selected_books.remove(indice)
+            self.mostrar_mensagem(f"Livro {indice} desmarcado")
+        else:
+            if len(self.selected_books) >= 2:
+                # Remove o mais novo (índice 1)
+                antigo_indice = self.selected_books.pop(1)
+                self.your_books[antigo_indice].config(highlightbackground="black", highlightthickness=2)
+                self.mostrar_mensagem(f"Livro {antigo_indice} desmarcado automaticamente")
+
+            # Selecionar o novo
+            livro.config(highlightbackground="white", highlightthickness=3)
+            self.selected_books.append(indice)
+            self.mostrar_mensagem(f"Livro {indice} selecionado")
+
+
+    # Função auxiliar para criar a função de clique do objetivo com o índice correto
+    def criar_funcao_clique_objetivo(self, indice):
+        def clique(event):
+            self.clicar_objetivo(event, indice)
+        return clique
+ 
+    def clicar_objetivo(self, event, indice):
+        """
+        Método chamado quando um livro de objetivo é clicado.
+        """
+        self.mostrar_mensagem(f"Livro objetivo {indice} clicado")
+
+        if indice in self.selected_objetctive:
+            # Se já está selecionado, desmarca
+            self.objective_books[indice].config(highlightbackground="black", highlightthickness=2)
+            self.selected_objetctive.remove(indice)
+            self.mostrar_mensagem(f"Livro objetivo {indice} desmarcado")
+        else:
+            if len(self.selected_objetctive) >= 2:
+                # Se já tem dois, remove o mais novo
+                antigo = self.selected_objetctive.pop(1)
+                self.objective_books[antigo].config(highlightbackground="black", highlightthickness=2)
+
+            # Marca o novo
+            self.objective_books[indice].config(highlightbackground="white", highlightthickness=3)
+            self.selected_objetctive.append(indice)
+            self.mostrar_mensagem(f"Livro objetivo {indice} selecionado")
 
     # Função auxiliar para criar a função de clique da carta com o índice correto
     def criar_funcao_clique_carta(self, indice):
@@ -145,7 +195,25 @@ class AdasLibraryInterface:
         Método chamado quando uma carta é clicada.
         """
         self.mostrar_mensagem(f"Carta {indice} clicada: {self.cards[indice]}")
-        # Lógica para lidar com o clique na carta
+
+        carta = self.card_widgets[indice]
+
+        if indice in self.selected_cards:
+            # Desselecionar
+            carta.config(highlightbackground="black", highlightthickness=2)
+            self.selected_cards.remove(indice)
+            self.mostrar_mensagem(f"Carta {indice} desmarcada")
+        else:
+            # Desmarca outras se quiser permitir só uma selecionada
+            for i in self.selected_cards:
+                self.card_widgets[i].config(highlightbackground="black", highlightthickness=2)
+            self.selected_cards.clear()
+
+            # Selecionar nova
+            carta.config(highlightbackground="yellow", highlightthickness=3)
+            self.selected_cards.append(indice)
+            self.mostrar_mensagem(f"Carta {indice} selecionada")
+
 
     def descartar(self):
         """
@@ -153,13 +221,6 @@ class AdasLibraryInterface:
         """
         self.mostrar_mensagem("Botão Descartar clicado")
         # Lógica para descartar
-
-    def cancelar(self):
-        """
-        Método chamado quando o botão Cancelar é clicado.
-        """
-        self.mostrar_mensagem("Botão Cancelar clicado")
-        # Lógica para cancelar
 
     def conceder(self):
         """

@@ -9,25 +9,23 @@ class AdasLibraryInterface:
         # Configuração da janela principal
         self.main_window = Tk()
         self.main_window.title("Ada's Library")
-        self.main_window.geometry("800x650")
+        self.main_window.geometry("1200x1000")  # AUMENTADO: tamanho da janela
         self.main_window.resizable(False, False)
         self.main_window.configure(bg="#315931")
         
         # Variáveis de estado do jogo
-        self.game_state = "welcome"  # welcome, name_input, playing, game_over
+        self.game_state = "welcome"  # welcome, playing, game_over
         self.current_player = "Jogador 1"
         self.player_name = None
         self.opponent_name = "Oponente"
         
         # Criar containers para cada tela
         self.welcome_screen = Frame(self.main_window, bg="#315931")
-        self.name_input_screen = Frame(self.main_window, bg="#315931")
         self.game_screen = Frame(self.main_window, bg="#315931")
         self.game_over_screen = Frame(self.main_window, bg="#315931")
         
         # Inicializar todas as telas
         self.setup_welcome_screen()
-        self.setup_name_input_screen()
         self.setup_game_screen()
         self.setup_game_over_screen()
         
@@ -42,7 +40,6 @@ class AdasLibraryInterface:
         Mostra a tela especificada e esconde as outras.
         """
         self.welcome_screen.pack_forget()
-        self.name_input_screen.pack_forget()
         self.game_screen.pack_forget()
         self.game_over_screen.pack_forget()
         
@@ -50,8 +47,6 @@ class AdasLibraryInterface:
         
         if screen_name == "welcome":
             self.welcome_screen.pack(fill=BOTH, expand=True)
-        elif screen_name == "name_input":
-            self.name_input_screen.pack(fill=BOTH, expand=True)
         elif screen_name == "playing":
             self.game_screen.pack(fill=BOTH, expand=True)
         elif screen_name == "game_over":
@@ -59,59 +54,37 @@ class AdasLibraryInterface:
     
     def setup_welcome_screen(self):
         """
-        Configura a tela de boas-vindas.
+        Configura a tela de boas-vindas com entrada de nome.
         """
         # Título grande
         title_label = Label(self.welcome_screen, text="Ada's Library", 
-                           font=("Arial", 48, "bold"), bg="#315931", fg="white")
-        title_label.pack(pady=(150, 20))
+                           font=("Arial", 60, "bold"), bg="#315931", fg="white")  # AUMENTADO: tamanho da fonte
+        title_label.pack(pady=(180, 30))  # AUMENTADO: espaçamento
         
         # Subtítulo
         subtitle_label = Label(self.welcome_screen, 
                               text="Um jogo de estratégia com livros e cartas", 
-                              font=("Arial", 16), bg="#315931", fg="white")
-        subtitle_label.pack(pady=(0, 50))
+                              font=("Arial", 22), bg="#315931", fg="white")  # AUMENTADO: tamanho da fonte
+        subtitle_label.pack(pady=(0, 40))  # AUMENTADO: espaçamento
         
-        # Botão para iniciar
-        start_button = Button(self.welcome_screen, text="Iniciar Jogo", 
-                             font=("Arial", 14, "bold"), bg="#A8DADC", fg="#1D3557",
-                             padx=20, pady=10, relief=RAISED, bd=3,
-                             command=lambda: self.show_screen("name_input"))
-        start_button.pack(pady=20)
-    
-    def setup_name_input_screen(self):
-        """
-        Configura a tela de entrada do nome do jogador.
-        """
-        # Título
-        title_label = Label(self.name_input_screen, text="Qual é o seu nome?", 
-                           font=("Arial", 24, "bold"), bg="#315931", fg="white")
-        title_label.pack(pady=(150, 50))
+        # Pergunta do nome
+        name_label = Label(self.welcome_screen, text="Qual é o seu nome?", 
+                          font=("Arial", 34, "bold"), bg="#315931", fg="white")
+        name_label.pack(pady=(0, 20))
         
         # Campo de entrada
-        self.name_entry = Entry(self.name_input_screen, font=("Arial", 16), width=30)
-        self.name_entry.pack(pady=20)
+        self.name_entry = Entry(self.welcome_screen, font=("Arial", 22), width=30)  # AUMENTADO: tamanho da fonte
+        self.name_entry.pack(pady=20)  # AUMENTADO: espaçamento
         self.name_entry.focus_set()  # Coloca o cursor no campo de entrada
         
-        # Frame para botões
-        buttons_frame = Frame(self.name_input_screen, bg="#315931")
-        buttons_frame.pack(pady=30)
+        # Botão para iniciar
+        start_button = Button(self.welcome_screen, text="Iniciar Partida", 
+                             font=("Arial", 20, "bold"), bg="#A8DADC", fg="#1D3557",  # AUMENTADO: tamanho da fonte
+                             padx=30, pady=15, relief=RAISED, bd=5,  # AUMENTADO: padding e borda
+                             command=self.confirm_name)
+        start_button.pack(pady=30)  # AUMENTADO: espaçamento
         
-        # Botão para confirmar
-        confirm_button = Button(buttons_frame, text="Confirmar", 
-                               font=("Arial", 14, "bold"), bg="#A8DADC", fg="#1D3557",
-                               padx=15, pady=8, relief=RAISED, bd=3,
-                               command=self.confirm_name)
-        confirm_button.pack(side=LEFT, padx=10)
-        
-        # Botão para voltar
-        back_button = Button(buttons_frame, text="Voltar", 
-                            font=("Arial", 14), bg="#6D6875", fg="white",
-                            padx=15, pady=8, relief=RAISED, bd=3,
-                            command=lambda: self.show_screen("welcome"))
-        back_button.pack(side=LEFT, padx=10)
-        
-        # Vincular a tecla Enter ao botão confirmar
+        # Vincular a tecla Enter ao botão iniciar
         self.name_entry.bind("<Return>", lambda event: self.confirm_name())
     
     def confirm_name(self):
@@ -138,38 +111,39 @@ class AdasLibraryInterface:
         Configura a estrutura da tela do jogo.
         """
         # Frame para mensagens
-        self.message_frame = Frame(self.game_screen, bg="#315931", pady=5)
-        self.message_label = Label(self.message_frame, text="", bg="#F0FFF0", relief="groove", padx=10, pady=5)
-        self.message_label.pack()
-        self.message_frame.pack(pady=5)
+        self.message_frame = Frame(self.game_screen, bg="#315931", pady=10)  # AUMENTADO: padding
+        self.message_label = Label(self.message_frame, text="", font=("Arial", 30),  # AUMENTADO: tamanho da fonte
+                                 bg="#F0FFF0", relief="groove", padx=15, pady=10)  # AUMENTADO: padding
+        self.message_label.pack(fill=X)
+        self.message_frame.pack(pady=10, fill=X, padx=30)  # AUMENTADO: padding
 
         # Frames principais
         self.selected_cards = []
         self.selected_books = []
-        self.selected_objetctive = [] 
-        self.opponent_frame = Frame(self.game_screen, bg="#315931", pady=10)
-        self.objective_frame = Frame(self.game_screen, bg="#315931", pady=10)
-        self.your_books_frame = Frame(self.game_screen, bg="#315931", pady=10)
-        self.cards_frame = Frame(self.game_screen, bg="#315931", pady=10)
-        self.buttons_frame = Frame(self.game_screen, bg="#315931", pady=10)
+        self.selected_objective = []  # Corrigido o nome da variável
+        self.opponent_frame = Frame(self.game_screen, bg="#315931", pady=15)  # AUMENTADO: padding
+        self.objective_frame = Frame(self.game_screen, bg="#315931", pady=15)  # AUMENTADO: padding
+        self.your_books_frame = Frame(self.game_screen, bg="#315931", pady=15)  # AUMENTADO: padding
+        self.cards_frame = Frame(self.game_screen, bg="#315931", pady=15)  # AUMENTADO: padding
+        self.buttons_frame = Frame(self.game_screen, bg="#315931", pady=15)  # AUMENTADO: padding
 
         # Posicionamento dos frames
-        self.turn_label = Label(self.game_screen, text="Vez do Jogador 1", font="Arial 18 bold", bg="#315931")
-        self.turn_label.pack(pady=10)
+        self.turn_label = Label(self.game_screen, text="Vez do Jogador 1", font="Arial 24 bold", bg="#315931", fg="white")  # AUMENTADO: tamanho da fonte
+        self.turn_label.pack(pady=15)  # AUMENTADO: padding
 
-        Label(self.opponent_frame, text="Livros do Oponente", font="Arial 14", bg="#315931").pack()
-        self.opponent_frame.pack()
+        Label(self.opponent_frame, text="Livros do Oponente", font="Arial 30", bg="#315931", fg="white").pack()  # AUMENTADO: tamanho da fonte
+        self.opponent_frame.pack(pady=(0, 10))  # AUMENTADO: espaçamento
 
-        Label(self.objective_frame, text="Objetivo", font="Arial 14", bg="#315931").pack()
-        self.objective_frame.pack()
+        Label(self.objective_frame, text="Objetivo", font="Arial 30", bg="#315931", fg="white").pack()  # AUMENTADO: tamanho da fonte
+        self.objective_frame.pack(pady=(0, 10))  # AUMENTADO: espaçamento
 
-        Label(self.your_books_frame, text="Seus Livros", font="Arial 14", bg="#315931").pack()
-        self.your_books_frame.pack()
+        Label(self.your_books_frame, text="Seus Livros", font="Arial 30", bg="#315931", fg="white").pack()  # AUMENTADO: tamanho da fonte
+        self.your_books_frame.pack(pady=(0, 10))  # AUMENTADO: espaçamento
 
-        Label(self.cards_frame, text="Cartas", font="Arial 14", bg="#315931").pack()
-        self.cards_frame.pack()
+        Label(self.cards_frame, text="Cartas", font="Arial 30", bg="#315931", fg="white").pack()  # AUMENTADO: tamanho da fonte
+        self.cards_frame.pack(pady=(0, 10))  # AUMENTADO: espaçamento
 
-        self.buttons_frame.pack(pady=20)
+        self.buttons_frame.pack(pady=30)  # AUMENTADO: espaçamento
 
         # Cores dos livros
         self.colors = {
@@ -183,18 +157,14 @@ class AdasLibraryInterface:
 
         # Botões
         self.discard_button = Button(self.buttons_frame, text="Descartar", bg="#FF6B6B", fg="white",
-                                    font="Arial 12", padx=10, pady=5, command=self.descartar)
-        self.discard_button.pack(side=LEFT, padx=10)
+                                    font="Arial 30", padx=20, pady=10,  # AUMENTADO: tamanho da fonte e padding
+                                    command=self.descartar)
+        self.discard_button.pack(side=LEFT, padx=20)  # AUMENTADO: espaçamento
 
         self.concede_button = Button(self.buttons_frame, text="Conceder", bg="#6D6875", fg="white",
-                                    font="Arial 12", padx=10, pady=5, command=self.conceder)
-        self.concede_button.pack(side=LEFT, padx=10)
-        
-        # Botão para menu
-        self.menu_button = Button(self.buttons_frame, text="Menu", bg="#1D3557", fg="white",
-                                 font="Arial 12", padx=10, pady=5, 
-                                 command=lambda: self.show_screen("welcome"))
-        self.menu_button.pack(side=LEFT, padx=10)
+                                    font="Arial 30", padx=20, pady=10,  # AUMENTADO: tamanho da fonte e padding
+                                    command=self.conceder)
+        self.concede_button.pack(side=LEFT, padx=20)  # AUMENTADO: espaçamento
         
         # Variáveis para armazenar os widgets
         self.opponent_books = []
@@ -209,38 +179,24 @@ class AdasLibraryInterface:
         """
         # Título
         self.game_over_title = Label(self.game_over_screen, text="Fim de Jogo", 
-                                    font=("Arial", 36, "bold"), bg="#315931", fg="white")
-        self.game_over_title.pack(pady=(150, 20))
+                                    font=("Arial", 48, "bold"), bg="#315931", fg="white")  # AUMENTADO: tamanho da fonte
+        self.game_over_title.pack(pady=(180, 30))  # AUMENTADO: espaçamento
         
         # Resultado
         self.result_label = Label(self.game_over_screen, text="", 
-                                 font=("Arial", 24), bg="#315931", fg="white")
-        self.result_label.pack(pady=(0, 50))
+                                 font=("Arial", 34), bg="#315931", fg="white")  # AUMENTADO: tamanho da fonte
+        self.result_label.pack(pady=(0, 70))  # AUMENTADO: espaçamento
         
         # Frame para botões
         buttons_frame = Frame(self.game_over_screen, bg="#315931")
-        buttons_frame.pack(pady=30)
+        buttons_frame.pack(pady=40)  # AUMENTADO: espaçamento
         
         # Botão para jogar novamente
         play_again_button = Button(buttons_frame, text="Jogar Novamente", 
-                                  font=("Arial", 14, "bold"), bg="#A8DADC", fg="#1D3557",
-                                  padx=15, pady=8, relief=RAISED, bd=3,
+                                  font=("Arial", 30, "bold"), bg="#A8DADC", fg="#1D3557",  # AUMENTADO: tamanho da fonte
+                                  padx=25, pady=12, relief=RAISED, bd=5,  # AUMENTADO: padding e borda
                                   command=self.reset_game)
-        play_again_button.pack(side=LEFT, padx=10)
-        
-        # Botão para voltar ao menu
-        menu_button = Button(buttons_frame, text="Menu Principal", 
-                            font=("Arial", 14), bg="#6D6875", fg="white",
-                            padx=15, pady=8, relief=RAISED, bd=3,
-                            command=lambda: self.show_screen("welcome"))
-        menu_button.pack(side=LEFT, padx=10)
-        
-        # Botão para sair
-        exit_button = Button(buttons_frame, text="Sair", 
-                            font=("Arial", 14), bg="#E63946", fg="white",
-                            padx=15, pady=8, relief=RAISED, bd=3,
-                            command=self.main_window.quit)
-        exit_button.pack(side=LEFT, padx=10)
+        play_again_button.pack(side=LEFT, padx=15)  # AUMENTADO: espaçamento
     
     def initialize_game(self):
         """
@@ -255,31 +211,31 @@ class AdasLibraryInterface:
         # Criação dos livros do oponente
         for i in range(10):
             color = random.choice(list(self.colors.keys()))
-            book = Frame(self.opponent_frame, width=50, height=75, bg=self.colors[color],
-                         highlightbackground="black", highlightthickness=2)
+            book = Frame(self.opponent_frame, width=70, height=100, bg=self.colors[color],  # AUMENTADO: tamanho dos livros
+                         highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
             book.pack_propagate(False)
-            book.pack(side=LEFT, padx=5)
+            book.pack(side=LEFT, padx=8)  # AUMENTADO: espaçamento
             self.opponent_books.append(book)
 
         # Criação dos livros do objetivo
         objective_colors = random.sample(list(self.colors.keys()), 6)
         for i, color in enumerate(objective_colors):
-            book = Frame(self.objective_frame, width=60, height=90, bg=self.colors[color],
-                        highlightbackground="black", highlightthickness=2)
+            book = Frame(self.objective_frame, width=85, height=120, bg=self.colors[color],  # AUMENTADO: tamanho dos livros
+                        highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
             book.pack_propagate(False)
-            book.pack(side=LEFT, padx=5)
-            # Adiciona o bind que estava faltando aqui:
+            book.pack(side=LEFT, padx=8)  # AUMENTADO: espaçamento
+            # Adiciona o bind para clique no objetivo
             book.bind("<Button-1>", self.criar_funcao_clique_objetivo(i))
             self.objective_books.append(book)
 
         # Criação dos seus livros
         for i in range(10):
             color = random.choice(list(self.colors.keys()))
-            book = Frame(self.your_books_frame, width=50, height=75, bg=self.colors[color],
-                         highlightbackground="black", highlightthickness=2)
+            book = Frame(self.your_books_frame, width=70, height=100, bg=self.colors[color],  # AUMENTADO: tamanho dos livros
+                         highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
             book.pack_propagate(False)
-            book.pack(side=LEFT, padx=5)
-            # Adiciona um evento de clique para cada livro chamando a função clicar_livro_wrapper
+            book.pack(side=LEFT, padx=8)  # AUMENTADO: espaçamento
+            # Adiciona um evento de clique para cada livro
             book.bind("<Button-1>", self.criar_funcao_clique_livro(i))
             self.your_books.append(book)
 
@@ -287,14 +243,14 @@ class AdasLibraryInterface:
         self.cards = ["Trocar 2 livros", "Mover esquerda", "Mover direita", "Trocar extremos", "Trocar com oponente"]
         
         for i, text in enumerate(self.cards):
-            card = Frame(self.cards_frame, width=70, height=100, bg="white",
-                         highlightbackground="black", highlightthickness=2)
+            card = Frame(self.cards_frame, width=100, height=140, bg="white",  # AUMENTADO: tamanho das cartas
+                         highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
             card.pack_propagate(False)
-            card.pack(side=LEFT, padx=5)
+            card.pack(side=LEFT, padx=10)  # AUMENTADO: espaçamento
 
-            label_carta = Label(card, text=text, bg="white", wraplength=60, font="Arial 8")
-            label_carta.pack(pady=(40, 0))
-            # Adiciona um evento de clique para cada carta chamando a função clicar_carta_wrapper
+            label_carta = Label(card, text=text, bg="white", wraplength=90, font="Arial 30")  # AUMENTADO: tamanho da fonte e wraplength
+            label_carta.pack(pady=(55, 0))  # AUMENTADO: posicionamento vertical
+            # Adiciona um evento de clique para cada carta
             card.bind("<Button-1>", self.criar_funcao_clique_carta(i))
             self.card_widgets.append(card)
         
@@ -328,7 +284,7 @@ class AdasLibraryInterface:
         # Limpar seleções
         self.selected_cards = []
         self.selected_books = []
-        self.selected_objetctive = []
+        self.selected_objective = []  # Corrigido o nome da variável
     
     def mostrar_mensagem(self, mensagem):
         """
@@ -347,26 +303,40 @@ class AdasLibraryInterface:
         """
         Método chamado quando um livro é clicado.
         """
+        # Verificar se é a vez do jogador
+        if self.current_player != self.player_name:
+            self.mostrar_mensagem("Não é sua vez de jogar.")
+            return
+            
+        # Verificar se já tem uma carta selecionada (RF05)
+        if not self.selected_cards:
+            self.mostrar_mensagem("Selecione uma carta primeiro.")
+            return
+            
         self.mostrar_mensagem(f"Livro {indice} clicado")
 
         livro = self.your_books[indice]
 
         if indice in self.selected_books:
             # Desselecionar
-            livro.config(highlightbackground="black", highlightthickness=2)
+            livro.config(highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
             self.selected_books.remove(indice)
             self.mostrar_mensagem(f"Livro {indice} desmarcado")
         else:
+            # Se já tem 2 livros selecionados, remove o segundo
             if len(self.selected_books) >= 2:
-                # Remove o mais novo (índice 1)
                 antigo_indice = self.selected_books.pop(1)
-                self.your_books[antigo_indice].config(highlightbackground="black", highlightthickness=2)
+                self.your_books[antigo_indice].config(highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
                 self.mostrar_mensagem(f"Livro {antigo_indice} desmarcado automaticamente")
 
             # Selecionar o novo
-            livro.config(highlightbackground="white", highlightthickness=3)
+            livro.config(highlightbackground="white", highlightthickness=4)  # AUMENTADO: borda destacada
             self.selected_books.append(indice)
             self.mostrar_mensagem(f"Livro {indice} selecionado")
+            
+            # Se tiver 2 livros selecionados, aplicar o efeito da carta
+            if len(self.selected_books) == 2 and self.selected_cards:
+                self.aplicar_efeito_carta()
 
     # Função auxiliar para criar a função de clique do objetivo com o índice correto
     def criar_funcao_clique_objetivo(self, indice):
@@ -378,22 +348,27 @@ class AdasLibraryInterface:
         """
         Método chamado quando um livro de objetivo é clicado.
         """
+        # Verificar se é a vez do jogador
+        if self.current_player != self.player_name:
+            self.mostrar_mensagem("Não é sua vez de jogar.")
+            return
+            
         self.mostrar_mensagem(f"Livro objetivo {indice} clicado")
 
-        if indice in self.selected_objetctive:
+        if indice in self.selected_objective:  # Corrigido o nome da variável
             # Se já está selecionado, desmarca
-            self.objective_books[indice].config(highlightbackground="black", highlightthickness=2)
-            self.selected_objetctive.remove(indice)
+            self.objective_books[indice].config(highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
+            self.selected_objective.remove(indice)  # Corrigido o nome da variável
             self.mostrar_mensagem(f"Livro objetivo {indice} desmarcado")
         else:
-            if len(self.selected_objetctive) >= 2:
+            if len(self.selected_objective) >= 2:  # Corrigido o nome da variável
                 # Se já tem dois, remove o mais novo
-                antigo = self.selected_objetctive.pop(1)
-                self.objective_books[antigo].config(highlightbackground="black", highlightthickness=2)
+                antigo = self.selected_objective.pop(1)  # Corrigido o nome da variável
+                self.objective_books[antigo].config(highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
 
             # Marca o novo
-            self.objective_books[indice].config(highlightbackground="white", highlightthickness=3)
-            self.selected_objetctive.append(indice)
+            self.objective_books[indice].config(highlightbackground="white", highlightthickness=4)  # AUMENTADO: borda destacada
+            self.selected_objective.append(indice)  # Corrigido o nome da variável
             self.mostrar_mensagem(f"Livro objetivo {indice} selecionado")
 
     # Função auxiliar para criar a função de clique da carta com o índice correto
@@ -406,30 +381,101 @@ class AdasLibraryInterface:
         """
         Método chamado quando uma carta é clicada.
         """
+        # Verificar se é a vez do jogador
+        if self.current_player != self.player_name:
+            self.mostrar_mensagem("Não é sua vez de jogar.")
+            return
+            
         self.mostrar_mensagem(f"Carta {indice} clicada: {self.cards[indice]}")
 
         carta = self.card_widgets[indice]
 
         if indice in self.selected_cards:
             # Desselecionar
-            carta.config(highlightbackground="black", highlightthickness=2)
+            carta.config(highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
             self.selected_cards.remove(indice)
             self.mostrar_mensagem(f"Carta {indice} desmarcada")
+            
+            # Limpar seleções de livros também
+            for i in self.selected_books:
+                self.your_books[i].config(highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
+            self.selected_books.clear()
         else:
-            # Desmarca outras se quiser permitir só uma selecionada
+            # Desmarca outras cartas se quiser permitir só uma selecionada
             for i in self.selected_cards:
-                self.card_widgets[i].config(highlightbackground="black", highlightthickness=2)
+                self.card_widgets[i].config(highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
             self.selected_cards.clear()
 
             # Selecionar nova
-            carta.config(highlightbackground="yellow", highlightthickness=3)
+            carta.config(highlightbackground="yellow", highlightthickness=4)  # AUMENTADO: borda destacada
             self.selected_cards.append(indice)
-            self.mostrar_mensagem(f"Carta {indice} selecionada")
+            self.mostrar_mensagem(f"Carta {indice} selecionada: {self.cards[indice]}")
+
+    def aplicar_efeito_carta(self):
+        """
+        Aplica o efeito da carta selecionada nos livros selecionados.
+        """
+        if not self.selected_cards or len(self.selected_books) != 2:
+            self.mostrar_mensagem("Selecione uma carta e dois livros para jogar.")
+            return
+            
+        card_index = self.selected_cards[0]
+        card_type = self.cards[card_index]
+        book1_index = self.selected_books[0]
+        book2_index = self.selected_books[1]
+        
+        self.mostrar_mensagem(f"Aplicando efeito da carta: {card_type} nos livros {book1_index} e {book2_index}")
+        
+        # Aplicar o efeito da carta (trocar os livros)
+        book1 = self.your_books[book1_index]
+        book2 = self.your_books[book2_index]
+        color1 = book1["bg"]
+        color2 = book2["bg"]
+        
+        # Trocar as cores dos livros
+        book1.config(bg=color2)
+        book2.config(bg=color1)
+        
+        # Substituir a carta usada com uma nova aleatória
+        new_card_texts = ["Inverter ordem", "Trocar adjacentes", "Mover 2 posições", "Trocar com mestre", "Reorganizar"]
+        self.cards[card_index] = random.choice(new_card_texts)
+        
+        # Atualizar o texto da carta
+        card = self.card_widgets[card_index]
+        label = card.winfo_children()[0]
+        label.config(text=self.cards[card_index])
+        
+        # Limpar seleções
+        card.config(highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
+        self.selected_cards.clear()
+        
+        for i in self.selected_books:
+            self.your_books[i].config(highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
+        self.selected_books.clear()
+        
+        # Verificar se o jogador venceu
+        if self.verificar_vitoria():
+            self.end_game(self.player_name)
+        else:
+            # Simular passagem de turno
+            self.simulate_opponent_turn()
+    
+    def verificar_vitoria(self):
+        """
+        Verifica se o jogador venceu comparando a ordem dos livros com o objetivo.
+        """
+        # Simplificação: 10% de chance de vitória após cada jogada
+        return random.random() < 0.1
 
     def descartar(self):
         """
         Método chamado quando o botão Descartar é clicado.
         """
+        # Verificar se é a vez do jogador
+        if self.current_player != self.player_name:
+            self.mostrar_mensagem("Não é sua vez de jogar.")
+            return
+            
         if not self.selected_cards:
             self.mostrar_mensagem("Selecione uma carta para descartar.")
             return
@@ -447,8 +493,13 @@ class AdasLibraryInterface:
         label.config(text=self.cards[card_index])
         
         # Limpar seleção
-        card.config(highlightbackground="black", highlightthickness=2)
+        card.config(highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
         self.selected_cards.clear()
+        
+        # Limpar seleções de livros também
+        for i in self.selected_books:
+            self.your_books[i].config(highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
+        self.selected_books.clear()
         
         # Simular passagem de turno
         self.simulate_opponent_turn()
@@ -464,39 +515,25 @@ class AdasLibraryInterface:
         """
         Simula uma jogada do oponente.
         """
+        self.current_player = self.opponent_name
         self.turn_label.config(text=f"Vez do {self.opponent_name}")
         self.mostrar_mensagem(f"{self.opponent_name} está jogando...")
         
-        # Simular uma troca visual de livros do oponente após 1.5 segundos
-        self.main_window.after(1500, self.perform_opponent_move)
+        # Simular turno do oponente após 1.5 segundos
+        #self.main_window.after(1500, self.perform_opponent_move)
+        # Devolver o turno para o jogador após 1 segundo
+        self.main_window.after(1000, self.return_turn_to_player)
     
     def perform_opponent_move(self):
         """
         Executa a jogada simulada do oponente.
         """
-        # Simular uma troca visual de livros do oponente
-        if len(self.opponent_books) >= 2:
-            idx1, idx2 = random.sample(range(len(self.opponent_books)), 2)
-            book1 = self.opponent_books[idx1]
-            book2 = self.opponent_books[idx2]
-            color1 = book1["bg"]
-            color2 = book2["bg"]
-            book1.config(bg=color2)
-            book2.config(bg=color1)
-        
-        self.mostrar_mensagem(f"{self.opponent_name} jogou uma carta.")
-        
-        # Verificar fim de jogo (10% de chance)
-        if random.random() < 0.1:
-            self.main_window.after(1000, lambda: self.end_game(self.opponent_name))
-        else:
-            # Devolver o turno para o jogador após 1 segundo
-            self.main_window.after(1000, self.return_turn_to_player)
     
     def return_turn_to_player(self):
         """
         Devolve o turno para o jogador.
         """
+        self.current_player = self.player_name
         self.turn_label.config(text=f"Vez de {self.player_name}")
         self.mostrar_mensagem("Sua vez! Selecione uma carta e depois um livro para jogar.")
     
@@ -517,10 +554,10 @@ class AdasLibraryInterface:
     
     def reset_game(self):
         """
-        Reseta o jogo para a tela de entrada de nome.
+        Reseta o jogo para a tela inicial.
         """
         self.clear_board()
-        self.show_screen("name_input")
+        self.show_screen("welcome")
 
 # Iniciar a aplicação
 if __name__ == "__main__":

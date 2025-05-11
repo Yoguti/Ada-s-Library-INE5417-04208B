@@ -1,19 +1,20 @@
-IMPORTANTE: APENAS UMA ENTREGA POR GRUPO (exceção: entrega adicional de membro, apenas arquivo de texto, com link de apresentação, apenas caso um membro do grupo atrase seu vídeo)
+Segunda entrega:
 
-Primeira entrega
+Implementação: além do exigido na entrega 1, deve ter tratada a interação com DOG Server para conexão, envio de solicitação de início de partida, recebimento de mando para início de partida (neste caso, alguma sinalização de recebimento da invocação do servidor).
 
-    O jogo a desenvolver (trabalho da disciplina) exige uma interface gráfica (GUI), que pode ser simples ou complexa, à escolha do grupo, mas cuja construção não depende de conhecimento adquirido na disciplina, mas da formação de programação que é pré-requisito para a disciplina. Assim, a primeira entrega prevê a implementação da interface do jogo, mas não da sua lógica. Todos os elementos de entrada de dados (de percepção de ação do usuário) devem estar operantes - com a exibição de uma mensagem, por exemplo. Sobre essa implementação, ver exemplo no link abaixo.
-    Além disso, a entrega deve incluir a especificação de requisitos, de acordo com o modelo apresentado em sala, observando a necessidade de conter (ou referenciar) as regras escritas do jogo (podendo conter ilustrações, evidentemente), além de um requisito não funcional com a aparência da GUI. Sobre a especificação de requisitos, ver exemplo Gobblet Gobblers
-    E também a primeira modelagem, contendo diagrama de classes,  diagrama de casos de uso, diagrama de visão geral de interação, todos tratando domínio do problema e domínio da solução (em particular, na modelagem de classes deve haver um diagrama contendo especificamente os elementos da interface gráfica e outro referente ao suporte para execução distribuída). Também diagramas de atividades: refinamento de pelo menos 3 casos de uso com diagrama de atividades (inicio de partida, ação local mais relevante, recebimento de jogada). Modelagem entregue em arquivo '.vpp.'
+Subsídios para a produção do aplicativo da entrega 2, desenvolvido em Python, sob DOG
 
-A MODELAGEM DEVE TOMAR COMO BASE A VERSÃO 04 DO EXEMPLO PENTAGO (ver página do professor), observando a necessidade de diagramas de atividades, ausentes nessa versão.
+Modelagem: deve tratar domínio do problema e da solução (neste caso, modelagem da interface gráfica e da interação com DOG Server). Deve conter diagramas de classes, casos de uso, visão geral de interação (para sequenciamento dos casos de uso), refinamento de todos os casos de uso em diagrama de atividades e de sequência.
 
-Além desses resultados, a entrega deve conter também os links para as apresentações em vídeo do material entregue de cada membro do grupo (pode ser um arquivo textual com os links de cada um dos membros do grupo. Nesta primeira APRESENTAÇÃO, a ideia é que o aluno mostre a especificação de requisitos (estrutura inicial, requisitos funcionais, não funcionais) rapidamente (e não lendo o documento); mostre a modelagem dinâmica relacionando os caso de uso com os requisitos funcionais (por que seu software deve implementar essas funcionalidades e em que ordem elas podem ser executadas?); mostre a modelagem estrutural identificando os elementos do domínio do problema (por que esses elementos?) e os elementos do domínio da solução (quais os elementos da interface e de DOG?); mostre o seu programa (protótipo inicial) em execução.
+Especificação de requisitos: apenas para quem não tiver obtido 10 na avaliação da especificação de requisitos da entrega 1, entrega de nova versão, tratando os aspectos criticados na avaliação anterior. Para quem estiver com 10, a nota será repetida, sem necessidade de entrega de nova versão.
 
-VÍDEOS DE APRESENTAÇÃO: esclarecendo alguns pontos, o vídeo de apresentação é individual, de cada membro do grupo, posto em uma plataforma como YouTube ou similar em que seja possível assistir ao vídeo a partir da ativação de um link (arquivo de vídeo compactado ou não não deve fazer parte do pacote entregue, mas apenas os links para assisti-los - e não links para baixar arquivos). O objetivo da apresentação individual é que cada membro do grupo domine todas as partes da modelagem - aquela que foi elaborada por ele, assim como a que foi elaborada por outro membro.
+A MODELAGEM DEVE TOMAR COMO BASE A VERSÃO 11 DO EXEMPLO PENTAGO (ver página do professor).
 
-Exemplo do que se espera da implementação da interface
+VÍDEOS DE APRESENTAÇÃO: esclarecendo alguns pontos, o vídeo de apresentação é individual, de cada membro do grupo, posto em uma plataforma como YouTube ou similar em que seja possível assistir ao vídeo a partir da ativação de um link (arquivo de vídeo compactado ou não não deve fazer parte do pacote entregue, mas apenas os links para assisti-los - e não links para baixar arquivos). O objetivo da apresentação individual é que cada membro do grupo domine todas as partes da modelagem - aquela que foi elaborada por ele, assim como a que foi elaborada por outro membro (que ele tem a obrigação de revisar).
+
+CONTEÚDO DO VÍDEO: comentar rapidamente as alterações feitas na versão anterior, a partir da discussão da defesa oral 1; descrever o refinamento dos casos de uso em diagrama de atividades e, a seguir, em diagrama de sequência, CONSIDERANDO A ORDEM DE EXECUÇÃO DOS CASOS DE USO expressa no diagrama de visão geral de interação. Enfatizar os casos de uso específicos do seu jogo, e, nesses, enfatizar o DETALHAMENTO DA LÓGICA DO JOGO.
 
 Entregar tudo em um único arquivo compactado.
 
-NOME DO ARQUIVO (PADRÃO): nomeDoJogo_01.zip (se todo mundo resolver chamar de entrega1.zip, fica difícil)
+NOME DO ARQUIVO (PADRÃO): nomeDoJogo_02.zip
+(se todo mundo resolver chamar de entrega2.zip, minha vida fica difícil)

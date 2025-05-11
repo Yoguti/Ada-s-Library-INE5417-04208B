@@ -133,6 +133,20 @@ class ADASLibraryInterface(DogPlayerInterface):
         print(f"Jogada enviada ao servidor: {dados_jogada}")
         return resultado
     
+    def mostrar_erro(self, mensagem):
+        """
+        Exibe uma mensagem de erro na tela de boas-vindas.
+        
+        Args:
+            mensagem (str): A mensagem de erro a ser exibida
+        """
+        if not hasattr(self, 'error_label'):
+            self.error_label = Label(self.welcome_screen, text="", 
+                                    font=("Arial", 18), bg="#315931", fg="#FF6B6B")
+            self.error_label.pack(pady=10)
+        
+        self.error_label.config(text=mensagem)
+    
     # Sobrescrever métodos de DogPlayerInterface
     
     def receive_start(self, start_status):
@@ -261,7 +275,7 @@ class ADASLibraryInterface(DogPlayerInterface):
     
     def confirm_name(self):
         """
-        Confirma o nome do jogador e avança para a tela do jogo.
+        Confirma o nome do jogador e tenta iniciar uma partida.
         """
         name = self.name_entry.get().strip()
         if name:
@@ -276,15 +290,19 @@ class ADASLibraryInterface(DogPlayerInterface):
         
         # Conectar ao servidor DOG
         resultado_conexao = self.conectar_ao_servidor(self.player_name)
-        self.mostrar_mensagem(f"Conexão: {resultado_conexao}")
         
+        if not self.connected:
+            self.mostrar_erro(f"Falha na conexão: {resultado_conexao}")
+            return
+            
         # Solicitar sessão de jogo se conectado
-        if self.connected:
-            self.solicitar_sessao_jogo(2)  # Solicitar jogo com 2 jogadores
-        
-        # Inicializar o jogo e mostrar a tela do jogo
-        self.initialize_game()
-        self.show_screen("playing")
+        if self.solicitar_sessao_jogo(2):  # Solicitar jogo com 2 jogadores
+            # Só inicializa o jogo e mostra a tela se a sessão foi iniciada com sucesso
+            self.initialize_game()
+            self.show_screen("playing")
+        else:
+            # Se não conseguiu iniciar a sessão, mostra mensagem de erro
+            self.mostrar_erro("Não foi possível iniciar: jogadores insuficientes")
     
     def setup_game_screen(self):
         """
@@ -470,7 +488,8 @@ class ADASLibraryInterface(DogPlayerInterface):
         """
         Exibe uma mensagem na label de mensagem.
         """
-        self.message_label.config(text=mensagem)
+        if hasattr(self, 'message_label'):
+            self.message_label.config(text=mensagem)
         print(mensagem)
     
     # Função auxiliar para criar a função de clique do livro com o índice correto
@@ -662,7 +681,7 @@ class ADASLibraryInterface(DogPlayerInterface):
         """
         Verifica se o jogador venceu comparando a ordem dos livros com o objetivo.
         """
-        # Simplificação: 10% de chance de vitória após cada jogada
+        # Simplificação APENAS PARA FINS DE TESTE RETIRAR DEPOIS.
         return random.random() < 0.1
 
     def descartar(self):

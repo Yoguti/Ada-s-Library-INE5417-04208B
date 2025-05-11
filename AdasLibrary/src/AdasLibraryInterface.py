@@ -1,11 +1,24 @@
 from tkinter import *
 import random
+from dog.dog_actor import DogActor
+from dog.dog_interface import DogPlayerInterface
+from dog.start_status import StartStatus
 
-class AdasLibraryInterface:
+class ADASLibraryInterface(DogPlayerInterface):
     """
-    Interface gráfica para o jogo Ada's Library com telas separadas.
+    Interface gráfica para o jogo Ada's Library com telas separadas e integração com o servidor DOG.
     """
     def __init__(self):
+        # Inicializa a classe pai DogPlayerInterface
+        super().__init__()
+        
+        # Configuração da conexão DOG
+        self.dog_actor = DogActor()
+        self.connected = False
+        self.in_game = False
+        self.players = []
+        self.local_player_id = ""
+        
         # Configuração da janela principal
         self.main_window = Tk()
         self.main_window.title("Ada's Library")
@@ -34,6 +47,165 @@ class AdasLibraryInterface:
         
         # Iniciar o loop principal
         self.main_window.mainloop()
+    
+    # Métodos para integração com o servidor DOG
+    
+    def conectar_ao_servidor(self, nome_jogador):
+        """
+        Estabelece uma conexão com o servidor DOG.
+        
+        Args:
+            nome_jogador (str): O nome do jogador a ser registrado no servidor
+            
+        Returns:
+            str: Mensagem indicando o resultado da tentativa de conexão
+        """
+        self.player_name = nome_jogador
+        resultado_conexao = self.dog_actor.initialize(nome_jogador, self)
+        
+        if resultado_conexao == "Conectado a Dog Server":
+            self.connected = True
+            print(f"Conectado com sucesso ao servidor DOG como {nome_jogador}")
+        else:
+            print(f"Falha na conexão: {resultado_conexao}")
+            
+        return resultado_conexao
+    
+    def solicitar_sessao_jogo(self, numero_jogadores):
+        """
+        Envia uma solicitação para iniciar uma sessão de jogo.
+        
+        Args:
+            numero_jogadores (int): O número de jogadores necessários para o jogo
+            
+        Returns:
+            bool: True se a sessão de jogo foi iniciada com sucesso, False caso contrário
+        """
+        if not self.connected:
+            print("Não é possível solicitar sessão de jogo: Não conectado ao servidor")
+            return False
+        
+        # Solicitar início de partida
+        start_status = self.dog_actor.start_match(str(numero_jogadores))
+        
+        # Processar o resultado
+        codigo = start_status.get_code()
+        mensagem = start_status.get_message()
+        
+        if codigo == "2":  # Partida iniciada
+            self.in_game = True
+            self.local_player_id = start_status.get_local_id()
+            self.players = start_status.get_players()
+            print(f"Sessão de jogo iniciada com sucesso: {mensagem}")
+            print(f"Jogadores na partida: {len(self.players)}")
+            self._processar_info_jogadores()
+            return True
+        else:
+            print(f"Falha ao iniciar sessão de jogo: {mensagem} (código: {codigo})")
+            return False
+    
+    def _processar_info_jogadores(self):
+        """Processa e exibe informações sobre os jogadores na sessão atual."""
+        print("\nJogadores nesta sessão de jogo:")
+        for i, jogador in enumerate(self.players):
+            nome_jogador, id_jogador, ordem_jogador = jogador
+            is_local = "(Você)" if id_jogador == self.local_player_id else ""
+            print(f"Jogador {i+1}: {nome_jogador} {is_local} - Ordem: {ordem_jogador}")
+    
+    def enviar_jogada(self, dados_jogada, status_partida="next"):
+        """
+        Envia uma jogada para o servidor durante uma partida.
+        
+        Args:
+            dados_jogada (dict): Dicionário contendo os dados da jogada
+            status_partida (str): Status da partida após esta jogada 
+                               ("next", "progress", ou "finished")
+        """
+        if not self.in_game:
+            print("Não é possível enviar jogada: Não está em uma partida ativa")
+            return
+        
+        # Adicionar status da partida aos dados da jogada
+        dados_jogada["match_status"] = status_partida
+        
+        # Enviar a jogada
+        resultado = self.dog_actor.send_move(dados_jogada)
+        print(f"Jogada enviada ao servidor: {dados_jogada}")
+        return resultado
+    
+    # Sobrescrever métodos de DogPlayerInterface
+    
+    def receive_start(self, start_status):
+        """
+        Trata o recebimento de um comando de início de jogo do servidor DOG.
+        
+        Args:
+            start_status (StartStatus): Objeto contendo informações sobre o jogo iniciado
+        """
+        print("\n--- SINAL DE INÍCIO DE JOGO RECEBIDO DO SERVIDOR ---")
+        
+        self.in_game = True
+        self.local_player_id = start_status.get_local_id()
+        self.players = start_status.get_players()
+        
+        print(f"Sessão de jogo iniciada por jogador remoto")
+        print(f"Mensagem: {start_status.get_message()}")
+        self._processar_info_jogadores()
+        
+        # Aqui normalmente inicializaria o estado do jogo
+        print("Jogo inicializado e pronto para jogar")
+        
+        # Inicializar o jogo e mostrar a tela do jogo
+        self.initialize_game()
+        self.show_screen("playing")
+    
+    def receive_move(self, move_dict):
+        """
+        Trata o recebimento de uma jogada de outro jogador.
+        
+        Args:
+            move_dict (dict): Dicionário contendo os dados da jogada
+        """
+        player_id = move_dict.get("player", "desconhecido")
+        match_status = move_dict.get("match_status", "desconhecido")
+        
+        # Encontrar nome do jogador a partir do ID
+        player_name = "Jogador Desconhecido"
+        for player in self.players:
+            if player[1] == player_id:
+                player_name = player[0]
+                break
+        
+        print(f"\nRecebida jogada de {player_name} (ID: {player_id}):")
+        print(f"Dados da jogada: {move_dict}")
+        print(f"Status da partida após jogada: {match_status}")
+        
+        # Aqui normalmente atualizaria o estado do jogo com base na jogada recebida
+        self.mostrar_mensagem(f"Jogada recebida de {player_name}")
+        
+        # Simular turno do oponente
+        self.current_player = self.opponent_name
+        self.turn_label.config(text=f"Vez do {self.opponent_name}")
+        
+        # Devolver o turno para o jogador após 1 segundo
+        self.main_window.after(1000, self.return_turn_to_player)
+        
+        if match_status == "finished":
+            print("Jogo foi marcado como finalizado pelo oponente")
+            self.in_game = False
+            self.end_game(player_name)
+    
+    def receive_withdrawal_notification(self):
+        """Trata notificação de que um oponente abandonou o jogo."""
+        print("\n--- NOTIFICAÇÃO DE DESISTÊNCIA DO OPONENTE ---")
+        print("Um oponente abandonou a partida. O jogo acabou.")
+        self.in_game = False
+        
+        # Mostrar mensagem na interface
+        self.mostrar_mensagem("Um oponente abandonou a partida!")
+        self.end_game(self.player_name, conceded=True)
+    
+    # Métodos da interface gráfica original
     
     def show_screen(self, screen_name):
         """
@@ -101,6 +273,14 @@ class AdasLibraryInterface:
         
         # Limpar o campo para próxima vez
         self.name_entry.delete(0, END)
+        
+        # Conectar ao servidor DOG
+        resultado_conexao = self.conectar_ao_servidor(self.player_name)
+        self.mostrar_mensagem(f"Conexão: {resultado_conexao}")
+        
+        # Solicitar sessão de jogo se conectado
+        if self.connected:
+            self.solicitar_sessao_jogo(2)  # Solicitar jogo com 2 jogadores
         
         # Inicializar o jogo e mostrar a tela do jogo
         self.initialize_game()
@@ -453,8 +633,26 @@ class AdasLibraryInterface:
             self.your_books[i].config(highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
         self.selected_books.clear()
         
+        # Enviar a jogada para o servidor DOG se estiver conectado
+        if self.connected and self.in_game:
+            jogada = {
+                "action": "swap_books",
+                "book1": book1_index,
+                "book2": book2_index,
+                "card": card_type
+            }
+            self.enviar_jogada(jogada)
+        
         # Verificar se o jogador venceu
         if self.verificar_vitoria():
+            # Enviar notificação de fim de jogo se estiver conectado
+            if self.connected and self.in_game:
+                jogada_final = {
+                    "action": "game_won",
+                    "winner": self.player_name
+                }
+                self.enviar_jogada(jogada_final, "finished")
+            
             self.end_game(self.player_name)
         else:
             # Simular passagem de turno
@@ -501,6 +699,14 @@ class AdasLibraryInterface:
             self.your_books[i].config(highlightbackground="black", highlightthickness=3)  # AUMENTADO: borda
         self.selected_books.clear()
         
+        # Enviar a jogada de descarte para o servidor DOG se estiver conectado
+        if self.connected and self.in_game:
+            jogada = {
+                "action": "discard",
+                "card_index": card_index
+            }
+            self.enviar_jogada(jogada)
+        
         # Simular passagem de turno
         self.simulate_opponent_turn()
 
@@ -509,6 +715,16 @@ class AdasLibraryInterface:
         Método chamado quando o botão Conceder é clicado.
         """
         self.mostrar_mensagem("Partida concedida!")
+        
+        # Enviar notificação de concessão para o servidor DOG se estiver conectado
+        if self.connected and self.in_game:
+            jogada = {
+                "action": "concede",
+                "player": self.player_name
+            }
+            self.enviar_jogada(jogada, "finished")
+            self.in_game = False
+        
         self.end_game(self.opponent_name, conceded=True)
     
     def simulate_opponent_turn(self):
@@ -561,6 +777,6 @@ class AdasLibraryInterface:
 
 # Iniciar a aplicação
 if __name__ == "__main__":
-    app = AdasLibraryInterface()
+    app = ADASLibraryInterface()
 
-print("Executando a interface do Ada's Library...")
+print("Executando a interface do Ada's Library com integração DOG...")

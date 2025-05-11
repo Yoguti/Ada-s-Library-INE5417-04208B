@@ -244,19 +244,19 @@ class ADASLibraryInterface(DogPlayerInterface):
         """
         # Título grande
         title_label = Label(self.welcome_screen, text="Ada's Library", 
-                           font=("Arial", 60, "bold"), bg="#315931", fg="white")  # AUMENTADO: tamanho da fonte
-        title_label.pack(pady=(180, 30))  # AUMENTADO: espaçamento
+                           font=("Serif", 180, "bold"), bg="#315931", fg="white")  # AUMENTADO: tamanho da fonte
+        title_label.pack(pady=(180, 10))  # AUMENTADO: espaçamento
         
         # Subtítulo
         subtitle_label = Label(self.welcome_screen, 
-                              text="Um jogo de estratégia com livros e cartas", 
-                              font=("Arial", 22), bg="#315931", fg="white")  # AUMENTADO: tamanho da fonte
-        subtitle_label.pack(pady=(0, 40))  # AUMENTADO: espaçamento
+                              text="Sua estante é seu campo de batalha.", 
+                              font=("Serif", 50), bg="#315931", fg="white")  # AUMENTADO: tamanho da fonte
+        subtitle_label.pack(pady=(0, 100))  # AUMENTADO: espaçamento
         
         # Pergunta do nome
         name_label = Label(self.welcome_screen, text="Qual é o seu nome?", 
                           font=("Arial", 34, "bold"), bg="#315931", fg="white")
-        name_label.pack(pady=(0, 20))
+        name_label.pack(pady=(0, 0))
         
         # Campo de entrada
         self.name_entry = Entry(self.welcome_screen, font=("Arial", 22), width=30)  # AUMENTADO: tamanho da fonte
@@ -265,7 +265,7 @@ class ADASLibraryInterface(DogPlayerInterface):
         
         # Botão para iniciar
         start_button = Button(self.welcome_screen, text="Iniciar Partida", 
-                             font=("Arial", 20, "bold"), bg="#A8DADC", fg="#1D3557",  # AUMENTADO: tamanho da fonte
+                             font=("Arial", 33, "bold"), bg="#A8DADC", fg="#1D3557",  # AUMENTADO: tamanho da fonte
                              padx=30, pady=15, relief=RAISED, bd=5,  # AUMENTADO: padding e borda
                              command=self.confirm_name)
         start_button.pack(pady=30)  # AUMENTADO: espaçamento
@@ -681,7 +681,7 @@ class ADASLibraryInterface(DogPlayerInterface):
         """
         Verifica se o jogador venceu comparando a ordem dos livros com o objetivo.
         """
-        # Simplificação APENAS PARA FINS DE TESTE RETIRAR DEPOIS.
+        # Simplificação: 10% de chance de vitória após cada jogada
         return random.random() < 0.1
 
     def descartar(self):

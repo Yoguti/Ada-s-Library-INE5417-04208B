@@ -142,7 +142,7 @@ class ADASLibraryInterface(DogPlayerInterface):
         """
         if not hasattr(self, 'error_label'):
             self.error_label = Label(self.welcome_screen, text="", 
-                                    font=("Arial", 18), bg="#315931", fg="#FF6B6B")
+                                    font=("Arial", 30), bg="#315931", fg="#FF6B6B")
             self.error_label.pack(pady=10)
         
         self.error_label.config(text=mensagem)
@@ -255,17 +255,17 @@ class ADASLibraryInterface(DogPlayerInterface):
         
         # Pergunta do nome
         name_label = Label(self.welcome_screen, text="Qual é o seu nome?", 
-                          font=("Arial", 34, "bold"), bg="#315931", fg="white")
+                          font=("Helvetica", 34, "bold"), bg="#315931", fg="white")
         name_label.pack(pady=(0, 0))
         
         # Campo de entrada
-        self.name_entry = Entry(self.welcome_screen, font=("Arial", 22), width=30)  # AUMENTADO: tamanho da fonte
+        self.name_entry = Entry(self.welcome_screen, font=("Helvetica", 22), width=30)  # AUMENTADO: tamanho da fonte
         self.name_entry.pack(pady=20)  # AUMENTADO: espaçamento
         self.name_entry.focus_set()  # Coloca o cursor no campo de entrada
         
         # Botão para iniciar
         start_button = Button(self.welcome_screen, text="Iniciar Partida", 
-                             font=("Arial", 33, "bold"), bg="#A8DADC", fg="#1D3557",  # AUMENTADO: tamanho da fonte
+                             font=("Helvetica", 33, "bold"), bg="#A8DADC", fg="#1D3557",  # AUMENTADO: tamanho da fonte
                              padx=30, pady=15, relief=RAISED, bd=5,  # AUMENTADO: padding e borda
                              command=self.confirm_name)
         start_button.pack(pady=30)  # AUMENTADO: espaçamento
@@ -310,7 +310,7 @@ class ADASLibraryInterface(DogPlayerInterface):
         """
         # Frame para mensagens
         self.message_frame = Frame(self.game_screen, bg="#315931", pady=10)  # AUMENTADO: padding
-        self.message_label = Label(self.message_frame, text="", font=("Arial", 30),  # AUMENTADO: tamanho da fonte
+        self.message_label = Label(self.message_frame, text="", font=("Helvetica", 30),  # AUMENTADO: tamanho da fonte
                                  bg="#F0FFF0", relief="groove", padx=15, pady=10)  # AUMENTADO: padding
         self.message_label.pack(fill=X)
         self.message_frame.pack(pady=10, fill=X, padx=30)  # AUMENTADO: padding
@@ -326,19 +326,19 @@ class ADASLibraryInterface(DogPlayerInterface):
         self.buttons_frame = Frame(self.game_screen, bg="#315931", pady=15)  # AUMENTADO: padding
 
         # Posicionamento dos frames
-        self.turn_label = Label(self.game_screen, text="Vez do Jogador 1", font="Arial 24 bold", bg="#315931", fg="white")  # AUMENTADO: tamanho da fonte
+        self.turn_label = Label(self.game_screen, text="Vez do Jogador 1", font="Helvetica 24 bold", bg="#315931", fg="white")  # AUMENTADO: tamanho da fonte
         self.turn_label.pack(pady=15)  # AUMENTADO: padding
 
-        Label(self.opponent_frame, text="Livros do Oponente", font="Arial 30", bg="#315931", fg="white").pack()  # AUMENTADO: tamanho da fonte
+        Label(self.opponent_frame, text="Livros do Oponente", font="Helvetica 30", bg="#315931", fg="white").pack()  # AUMENTADO: tamanho da fonte
         self.opponent_frame.pack(pady=(0, 10))  # AUMENTADO: espaçamento
 
-        Label(self.objective_frame, text="Objetivo", font="Arial 30", bg="#315931", fg="white").pack()  # AUMENTADO: tamanho da fonte
+        Label(self.objective_frame, text="Objetivo", font="Helvetica 30", bg="#315931", fg="white").pack()  # AUMENTADO: tamanho da fonte
         self.objective_frame.pack(pady=(0, 10))  # AUMENTADO: espaçamento
 
-        Label(self.your_books_frame, text="Seus Livros", font="Arial 30", bg="#315931", fg="white").pack()  # AUMENTADO: tamanho da fonte
+        Label(self.your_books_frame, text="Seus Livros", font="Helvetica 30", bg="#315931", fg="white").pack()  # AUMENTADO: tamanho da fonte
         self.your_books_frame.pack(pady=(0, 10))  # AUMENTADO: espaçamento
 
-        Label(self.cards_frame, text="Cartas", font="Arial 30", bg="#315931", fg="white").pack()  # AUMENTADO: tamanho da fonte
+        Label(self.cards_frame, text="Cartas", font="Helvetica 30", bg="#315931", fg="white").pack()  # AUMENTADO: tamanho da fonte
         self.cards_frame.pack(pady=(0, 10))  # AUMENTADO: espaçamento
 
         self.buttons_frame.pack(pady=30)  # AUMENTADO: espaçamento
@@ -355,12 +355,12 @@ class ADASLibraryInterface(DogPlayerInterface):
 
         # Botões
         self.discard_button = Button(self.buttons_frame, text="Descartar", bg="#FF6B6B", fg="white",
-                                    font="Arial 30", padx=20, pady=10,  # AUMENTADO: tamanho da fonte e padding
+                                    font="Helvetica 30", padx=20, pady=10,  # AUMENTADO: tamanho da fonte e padding
                                     command=self.descartar)
         self.discard_button.pack(side=LEFT, padx=20)  # AUMENTADO: espaçamento
 
         self.concede_button = Button(self.buttons_frame, text="Conceder", bg="#6D6875", fg="white",
-                                    font="Arial 30", padx=20, pady=10,  # AUMENTADO: tamanho da fonte e padding
+                                    font="Helvetica 30", padx=20, pady=10,  # AUMENTADO: tamanho da fonte e padding
                                     command=self.conceder)
         self.concede_button.pack(side=LEFT, padx=20)  # AUMENTADO: espaçamento
         
@@ -377,12 +377,12 @@ class ADASLibraryInterface(DogPlayerInterface):
         """
         # Título
         self.game_over_title = Label(self.game_over_screen, text="Fim de Jogo", 
-                                    font=("Arial", 48, "bold"), bg="#315931", fg="white")  # AUMENTADO: tamanho da fonte
+                                    font=("Helvetica", 48, "bold"), bg="#315931", fg="white")  # AUMENTADO: tamanho da fonte
         self.game_over_title.pack(pady=(180, 30))  # AUMENTADO: espaçamento
         
         # Resultado
         self.result_label = Label(self.game_over_screen, text="", 
-                                 font=("Arial", 34), bg="#315931", fg="white")  # AUMENTADO: tamanho da fonte
+                                 font=("Helvetica", 34), bg="#315931", fg="white")  # AUMENTADO: tamanho da fonte
         self.result_label.pack(pady=(0, 70))  # AUMENTADO: espaçamento
         
         # Frame para botões
@@ -391,7 +391,7 @@ class ADASLibraryInterface(DogPlayerInterface):
         
         # Botão para jogar novamente
         play_again_button = Button(buttons_frame, text="Jogar Novamente", 
-                                  font=("Arial", 30, "bold"), bg="#A8DADC", fg="#1D3557",  # AUMENTADO: tamanho da fonte
+                                  font=("Helvetica", 30, "bold"), bg="#A8DADC", fg="#1D3557",  # AUMENTADO: tamanho da fonte
                                   padx=25, pady=12, relief=RAISED, bd=5,  # AUMENTADO: padding e borda
                                   command=self.reset_game)
         play_again_button.pack(side=LEFT, padx=15)  # AUMENTADO: espaçamento
@@ -446,7 +446,7 @@ class ADASLibraryInterface(DogPlayerInterface):
             card.pack_propagate(False)
             card.pack(side=LEFT, padx=10)  # AUMENTADO: espaçamento
 
-            label_carta = Label(card, text=text, bg="white", wraplength=90, font="Arial 30")  # AUMENTADO: tamanho da fonte e wraplength
+            label_carta = Label(card, text=text, bg="white", wraplength=90, font="Helvetica 30")  # AUMENTADO: tamanho da fonte e wraplength
             label_carta.pack(pady=(55, 0))  # AUMENTADO: posicionamento vertical
             # Adiciona um evento de clique para cada carta
             card.bind("<Button-1>", self.criar_funcao_clique_carta(i))

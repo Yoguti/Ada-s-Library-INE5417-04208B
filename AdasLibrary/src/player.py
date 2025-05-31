@@ -17,8 +17,7 @@ class Player:
     def set_is_turn(self, turn):
         self.is_turn = turn
     
-    def set_is_turn_turn(self, turn):
-        self.is_turn = turn
+    # Removed redundant set_is_turn_turn method as suggested
     
     def get_name(self):
         return self.name

@@ -98,13 +98,6 @@ class AdasLibraryInterface(DogPlayerInterface):
                                     command=self.start_game, state=tk.DISABLED)
         self.start_button.pack(pady=30)
         
-        # Add reset button to welcome screen
-        self.reset_button = tk.Button(self.welcome_screen, text="Resetar Jogo", 
-                                    font=("Helvetica", button_font_size, "bold"), bg="#E63946", fg="white",
-                                    padx=20, pady=10, relief=tk.RAISED, bd=5,
-                                    command=self.reset_game, state=tk.DISABLED)
-        self.reset_button.pack(pady=10)
-        
         self.name_entry.bind("<Return>", lambda event: self.connect_to_server())
     
     def setup_game_screen(self):
@@ -151,11 +144,23 @@ class AdasLibraryInterface(DogPlayerInterface):
         
         self.buttons_frame.pack(pady=30)
         
-        # Buttons with scaled fonts
+        # Game action buttons with scaled fonts
         self.discard_button = tk.Button(self.buttons_frame, text="Descartar Carta", bg="#FF6B6B", fg="white",
                                        font=f"Helvetica {button_font_size}", padx=20, pady=10,
                                        command=self.discard_card)
-        self.discard_button.pack(side=tk.LEFT, padx=20)
+        self.discard_button.pack(side=tk.LEFT, padx=15)
+        
+        # Concede button for withdrawal
+        self.concede_button = tk.Button(self.buttons_frame, text="Conceder", bg="#E63946", fg="white",
+                                       font=f"Helvetica {button_font_size}", padx=20, pady=10,
+                                       command=self.concede_game)
+        self.concede_button.pack(side=tk.LEFT, padx=15)
+        
+        # Cancel selection button
+        self.cancel_button = tk.Button(self.buttons_frame, text="Cancelar Seleção", bg="#6C757D", fg="white",
+                                      font=f"Helvetica {button_font_size}", padx=20, pady=10,
+                                      command=self.cancel_selection)
+        self.cancel_button.pack(side=tk.LEFT, padx=15)
         
         # Color mapping
         self.colors = {
@@ -198,11 +203,12 @@ class AdasLibraryInterface(DogPlayerInterface):
         buttons_frame = tk.Frame(self.game_over_screen, bg="#315931")
         buttons_frame.pack(pady=40)
         
-        play_again_button = tk.Button(buttons_frame, text="Jogar Novamente", 
+        # Renamed from play_again_button to reset_button as requested
+        self.reset_button = tk.Button(buttons_frame, text="Resetar Jogo", 
                                      font=("Helvetica", button_font_size, "bold"), bg="#A8DADC", fg="#1D3557",
                                      padx=25, pady=12, relief=tk.RAISED, bd=5,
-                                     command=self.reset_game)
-        play_again_button.pack(side=tk.LEFT, padx=15)
+                                     command=self.reset_game, state=tk.DISABLED)
+        self.reset_button.pack(side=tk.LEFT, padx=15)
     
     def show_screen(self, screen_name):
         self.welcome_screen.pack_forget()
@@ -237,6 +243,34 @@ class AdasLibraryInterface(DogPlayerInterface):
             self.handle_match_start(start_status)
         else:
             self.show_message(f"Erro ao iniciar partida: {start_status.message}")
+    
+    def concede_game(self):
+        """Allow player to concede the game"""
+        if not self.match_in_progress:
+            self.show_message("Não há partida em andamento!")
+            return
+        
+        result = messagebox.askyesno("Conceder Partida", 
+                                   "Tem certeza que deseja conceder a partida?")
+        if result:
+            # Send withdrawal notification through DOG
+            if self.dog_actor:
+                self.dog_actor.send_withdrawal()
+            
+            self.show_message("Você concedeu a partida!")
+            self.match_in_progress = False
+            self.result_label.config(text="Você concedeu a partida")
+            self.reset_button.config(state=tk.NORMAL)
+            self.show_screen("game_over")
+    
+    def cancel_selection(self):
+        """Cancel current card and book selections"""
+        if not self.game.verificar_turno_do_jogador():
+            self.show_message("Não é seu turno!")
+            return
+        
+        self.clear_selections()
+        self.show_message("Seleção cancelada. Escolha uma carta para jogar.")
     
     def initialize_game_display(self):
         self.clear_board()
@@ -371,7 +405,7 @@ class AdasLibraryInterface(DogPlayerInterface):
             return
         
         if self.selected_target_type not in ["personal", "opponent"]:
-            self.show_message("Esta carta não pode ser usada em seus livros!")
+            self.show_message("Jogada irregular: Esta carta não pode ser usada em seus livros! Selecione uma carta válida.")
             return
         
         self.handle_book_selection(index, "your")
@@ -386,7 +420,7 @@ class AdasLibraryInterface(DogPlayerInterface):
             return
         
         if self.selected_target_type != "opponent":
-            self.show_message("Esta carta não pode ser usada nos livros do oponente!")
+            self.show_message("Jogada irregular: Esta carta não pode ser usada nos livros do oponente! Selecione uma carta válida.")
             return
         
         self.handle_book_selection(index, "opponent")
@@ -401,7 +435,7 @@ class AdasLibraryInterface(DogPlayerInterface):
             return
         
         if self.selected_target_type != "master":
-            self.show_message("Esta carta não pode ser usada nos livros mestres!")
+            self.show_message("Jogada irregular: Esta carta não pode ser usada nos livros mestres! Selecione uma carta válida.")
             return
         
         self.handle_book_selection(index, "master")
@@ -438,10 +472,16 @@ class AdasLibraryInterface(DogPlayerInterface):
             self.apply_card_with_data(target_data)
     
     def handle_move_book_spaces(self, index, book_type):
+        # Get current display length for validation
+        if book_type == "your":
+            max_spaces = len(self.game.local_player.get_display().get_display()) - 1
+        else:
+            max_spaces = 9  # Default fallback
+        
         # Ask for number of spaces to move
         spaces = simpledialog.askinteger("Mover Livro", 
                                         "Quantos espaços mover?\n(negativo = esquerda, positivo = direita)",
-                                        minvalue=-9, maxvalue=9)
+                                        minvalue=-max_spaces, maxvalue=max_spaces)
         if spaces is not None:
             target_data = [index, spaces]
             self.apply_card_with_data(target_data)
@@ -461,10 +501,13 @@ class AdasLibraryInterface(DogPlayerInterface):
     
     def handle_swap_with_opponent(self, index, book_type):
         if book_type == "your":
+            # Get opponent display length for validation
+            opponent_length = len(self.game.remote_player.get_display().get_display())
+            
             # Ask for opponent book index (visual position)
             opponent_index = simpledialog.askinteger("Trocar com Oponente", 
-                                                    "Posição visual do livro do oponente (1-10):",
-                                                    minvalue=1, maxvalue=10)
+                                                    f"Posição visual do livro do oponente (1-{opponent_length}):",
+                                                    minvalue=1, maxvalue=opponent_length)
             if opponent_index is not None:
                 # Convert to 0-based index
                 visual_index = opponent_index - 1
@@ -579,7 +622,7 @@ class AdasLibraryInterface(DogPlayerInterface):
             
             self.show_message("Aguardando jogada do oponente...")
         else:
-            self.show_message("Não foi possível aplicar a carta!")
+            self.show_message("Jogada irregular: Não foi possível aplicar a carta! Selecione uma carta válida.")
             self.clear_selections()
     
     def update_book_highlight(self, index, book_type, selected):

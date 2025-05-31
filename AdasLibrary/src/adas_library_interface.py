@@ -26,9 +26,26 @@ class AdasLibraryInterface(DogPlayerInterface):
     def setup_ui(self):
         self.root = tk.Tk()
         self.root.title("Ada's Library")
-        self.root.geometry("1200x1000")
-        self.root.resizable(False, False)
+        
+        # Get screen dimensions for responsive sizing
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        
+        # Calculate window size based on screen size (80% of screen, minimum 1200x900)
+        window_width = max(1200, int(screen_width * 0.8))
+        window_height = max(900, int(screen_height * 0.8))
+        
+        # Center window on screen
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        
+        self.root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        self.root.resizable(True, True)
         self.root.configure(bg="#315931")
+        
+        # Store dimensions for scaling
+        self.window_width = window_width
+        self.window_height = window_height
         
         # Create screens
         self.welcome_screen = tk.Frame(self.root, bg="#315931")
@@ -42,53 +59,69 @@ class AdasLibraryInterface(DogPlayerInterface):
         self.show_screen("welcome")
     
     def setup_welcome_screen(self):
+        # Scale font sizes based on window size
+        title_font_size = max(120, int(self.window_width * 0.1))
+        subtitle_font_size = max(30, int(self.window_width * 0.025))
+        button_font_size = max(20, int(self.window_width * 0.017))
+        
         # Title
         title_label = tk.Label(self.welcome_screen, text="Ada's Library", 
-                              font=("Serif", 180, "bold"), bg="#315931", fg="white")
-        title_label.pack(pady=(180, 10))
+                              font=("Serif", title_font_size, "bold"), bg="#315931", fg="white")
+        title_label.pack(pady=(int(self.window_height * 0.15), 10))
         
         # Subtitle
         subtitle_label = tk.Label(self.welcome_screen, 
                                  text="Sua estante é seu campo de batalha.", 
-                                 font=("Serif", 50), bg="#315931", fg="white")
-        subtitle_label.pack(pady=(0, 100))
+                                 font=("Serif", subtitle_font_size), bg="#315931", fg="white")
+        subtitle_label.pack(pady=(0, int(self.window_height * 0.08)))
         
         # Name input
         name_label = tk.Label(self.welcome_screen, text="Qual é o seu nome?", 
-                             font=("Helvetica", 34, "bold"), bg="#315931", fg="white")
+                             font=("Helvetica", button_font_size + 8, "bold"), bg="#315931", fg="white")
         name_label.pack(pady=(0, 0))
         
-        self.name_entry = tk.Entry(self.welcome_screen, font=("Helvetica", 22), width=30)
+        self.name_entry = tk.Entry(self.welcome_screen, font=("Helvetica", button_font_size), width=30)
         self.name_entry.pack(pady=20)
         self.name_entry.focus_set()
         
         # Connect button
         connect_button = tk.Button(self.welcome_screen, text="Conectar ao Servidor", 
-                                  font=("Helvetica", 25, "bold"), bg="#457b9d", fg="white",
+                                  font=("Helvetica", button_font_size, "bold"), bg="#457b9d", fg="white",
                                   padx=20, pady=10, relief=tk.RAISED, bd=5,
                                   command=self.connect_to_server)
         connect_button.pack(pady=10)
         
         # Start button
         self.start_button = tk.Button(self.welcome_screen, text="Iniciar Partida", 
-                                    font=("Helvetica", 33, "bold"), bg="#A8DADC", fg="#1D3557",
+                                    font=("Helvetica", button_font_size + 5, "bold"), bg="#A8DADC", fg="#1D3557",
                                     padx=30, pady=15, relief=tk.RAISED, bd=5,
                                     command=self.start_game, state=tk.DISABLED)
         self.start_button.pack(pady=30)
-
+        
+        # Add reset button to welcome screen
+        self.reset_button = tk.Button(self.welcome_screen, text="Resetar Jogo", 
+                                    font=("Helvetica", button_font_size, "bold"), bg="#E63946", fg="white",
+                                    padx=20, pady=10, relief=tk.RAISED, bd=5,
+                                    command=self.reset_game, state=tk.DISABLED)
+        self.reset_button.pack(pady=10)
         
         self.name_entry.bind("<Return>", lambda event: self.connect_to_server())
     
     def setup_game_screen(self):
+        # Scale font sizes
+        message_font_size = max(18, int(self.window_width * 0.015))
+        label_font_size = max(20, int(self.window_width * 0.017))
+        button_font_size = max(18, int(self.window_width * 0.015))
+        
         # Message frame
         self.message_frame = tk.Frame(self.game_screen, bg="#315931", pady=10)
-        self.message_label = tk.Label(self.message_frame, text="", font=("Helvetica", 30),
+        self.message_label = tk.Label(self.message_frame, text="", font=("Helvetica", message_font_size),
                                      bg="#F0FFF0", relief="groove", padx=15, pady=10)
         self.message_label.pack(fill=tk.X)
         self.message_frame.pack(pady=10, fill=tk.X, padx=30)
         
         # Turn label
-        self.turn_label = tk.Label(self.game_screen, text="", font="Helvetica 24 bold", 
+        self.turn_label = tk.Label(self.game_screen, text="", font=f"Helvetica {label_font_size} bold", 
                                   bg="#315931", fg="white")
         self.turn_label.pack(pady=15)
         
@@ -99,28 +132,28 @@ class AdasLibraryInterface(DogPlayerInterface):
         self.cards_frame = tk.Frame(self.game_screen, bg="#315931", pady=15)
         self.buttons_frame = tk.Frame(self.game_screen, bg="#315931", pady=15)
         
-        # Labels
-        tk.Label(self.opponent_frame, text="Livros do Oponente", font="Helvetica 30", 
+        # Labels with scaled fonts
+        tk.Label(self.opponent_frame, text="Livros do Oponente", font=f"Helvetica {label_font_size}", 
                 bg="#315931", fg="white").pack()
         self.opponent_frame.pack(pady=(0, 10))
         
-        tk.Label(self.objective_frame, text="Objetivo", font="Helvetica 30", 
+        tk.Label(self.objective_frame, text="Objetivo", font=f"Helvetica {label_font_size}", 
                 bg="#315931", fg="white").pack()
         self.objective_frame.pack(pady=(0, 10))
         
-        tk.Label(self.your_books_frame, text="Seus Livros", font="Helvetica 30", 
+        tk.Label(self.your_books_frame, text="Seus Livros", font=f"Helvetica {label_font_size}", 
                 bg="#315931", fg="white").pack()
         self.your_books_frame.pack(pady=(0, 10))
         
-        tk.Label(self.cards_frame, text="Cartas", font="Helvetica 30", 
+        tk.Label(self.cards_frame, text="Cartas", font=f"Helvetica {label_font_size}", 
                 bg="#315931", fg="white").pack()
         self.cards_frame.pack(pady=(0, 10))
         
         self.buttons_frame.pack(pady=30)
         
-        # Buttons
-        self.discard_button = tk.Button(self.buttons_frame, text="Descartar", bg="#FF6B6B", fg="white",
-                                       font="Helvetica 30", padx=20, pady=10,
+        # Buttons with scaled fonts
+        self.discard_button = tk.Button(self.buttons_frame, text="Descartar Carta", bg="#FF6B6B", fg="white",
+                                       font=f"Helvetica {button_font_size}", padx=20, pady=10,
                                        command=self.discard_card)
         self.discard_button.pack(side=tk.LEFT, padx=20)
         
@@ -139,21 +172,34 @@ class AdasLibraryInterface(DogPlayerInterface):
         self.objective_books = []
         self.your_books = []
         self.card_widgets = []
+        
+        # Calculate book and card sizes based on window size
+        self.book_width = max(50, int(self.window_width * 0.04))
+        self.book_height = max(70, int(self.window_height * 0.08))
+        self.objective_book_width = max(60, int(self.window_width * 0.05))
+        self.objective_book_height = max(85, int(self.window_height * 0.09))
+        self.card_width = max(80, int(self.window_width * 0.067))
+        self.card_height = max(100, int(self.window_height * 0.11))
     
     def setup_game_over_screen(self):
+        # Scale font sizes
+        title_font_size = max(36, int(self.window_width * 0.03))
+        result_font_size = max(24, int(self.window_width * 0.02))
+        button_font_size = max(20, int(self.window_width * 0.017))
+        
         self.game_over_title = tk.Label(self.game_over_screen, text="Fim de Jogo", 
-                                       font=("Helvetica", 48, "bold"), bg="#315931", fg="white")
-        self.game_over_title.pack(pady=(180, 30))
+                                       font=("Helvetica", title_font_size, "bold"), bg="#315931", fg="white")
+        self.game_over_title.pack(pady=(int(self.window_height * 0.2), 30))
         
         self.result_label = tk.Label(self.game_over_screen, text="", 
-                                    font=("Helvetica", 34), bg="#315931", fg="white")
+                                    font=("Helvetica", result_font_size), bg="#315931", fg="white")
         self.result_label.pack(pady=(0, 70))
         
         buttons_frame = tk.Frame(self.game_over_screen, bg="#315931")
         buttons_frame.pack(pady=40)
         
         play_again_button = tk.Button(buttons_frame, text="Jogar Novamente", 
-                                     font=("Helvetica", 30, "bold"), bg="#A8DADC", fg="#1D3557",
+                                     font=("Helvetica", button_font_size, "bold"), bg="#A8DADC", fg="#1D3557",
                                      padx=25, pady=12, relief=tk.RAISED, bd=5,
                                      command=self.reset_game)
         play_again_button.pack(side=tk.LEFT, padx=15)
@@ -200,11 +246,11 @@ class AdasLibraryInterface(DogPlayerInterface):
             opponent_books = self.game.remote_player.get_display().get_display()
             for i, book in enumerate(opponent_books):
                 color = book.get_color()
-                book_widget = tk.Frame(self.opponent_frame, width=70, height=100, 
+                book_widget = tk.Frame(self.opponent_frame, width=self.book_width, height=self.book_height, 
                                       bg=self.colors.get(color, "#BDC3C7"),
-                                      highlightbackground="black", highlightthickness=3)
+                                      highlightbackground="black", highlightthickness=2)
                 book_widget.pack_propagate(False)
-                book_widget.pack(side=tk.LEFT, padx=8)
+                book_widget.pack(side=tk.LEFT, padx=5)
                 book_widget.bind("<Button-1>", self.create_opponent_book_click(i))
                 self.opponent_books.append(book_widget)
         
@@ -212,7 +258,7 @@ class AdasLibraryInterface(DogPlayerInterface):
         master_books = self.game.main_display.main_display
         for i, book in enumerate(master_books):
             color = book.get_color()
-            book_widget = tk.Frame(self.objective_frame, width=85, height=120, 
+            book_widget = tk.Frame(self.objective_frame, width=self.objective_book_width, height=self.objective_book_height, 
                                   bg=self.colors.get(color, "#BDC3C7"),
                                   highlightbackground="black", highlightthickness=3)
             book_widget.pack_propagate(False)
@@ -225,26 +271,27 @@ class AdasLibraryInterface(DogPlayerInterface):
             your_books = self.game.local_player.get_display().get_display()
             for i, book in enumerate(your_books):
                 color = book.get_color()
-                book_widget = tk.Frame(self.your_books_frame, width=70, height=100, 
+                book_widget = tk.Frame(self.your_books_frame, width=self.book_width, height=self.book_height, 
                                       bg=self.colors.get(color, "#BDC3C7"),
-                                      highlightbackground="black", highlightthickness=3)
+                                      highlightbackground="black", highlightthickness=2)
                 book_widget.pack_propagate(False)
-                book_widget.pack(side=tk.LEFT, padx=8)
+                book_widget.pack(side=tk.LEFT, padx=5)
                 book_widget.bind("<Button-1>", self.create_your_book_click(i))
                 self.your_books.append(book_widget)
         
         # Create cards
         if self.game.local_player:
             cards = self.game.local_player.get_hand().get_cartas()
+            card_font_size = max(10, int(self.window_width * 0.008))
             for i, card in enumerate(cards):
-                card_widget = tk.Frame(self.cards_frame, width=100, height=140, bg="white",
-                                      highlightbackground="black", highlightthickness=3)
+                card_widget = tk.Frame(self.cards_frame, width=self.card_width, height=self.card_height, bg="white",
+                                      highlightbackground="black", highlightthickness=2)
                 card_widget.pack_propagate(False)
-                card_widget.pack(side=tk.LEFT, padx=10)
+                card_widget.pack(side=tk.LEFT, padx=8)
                 
                 label = tk.Label(card_widget, text=card.description, bg="white", 
-                                wraplength=90, font="Helvetica 20")
-                label.pack(pady=(20, 0))
+                                wraplength=self.card_width-10, font=f"Helvetica {card_font_size}")
+                label.pack(pady=(10, 0))
                 
                 card_widget.bind("<Button-1>", self.create_card_click(i))
                 self.card_widgets.append(card_widget)
@@ -299,7 +346,7 @@ class AdasLibraryInterface(DogPlayerInterface):
         # Clear previous card selection
         if self.selected_card_index is not None:
             self.card_widgets[self.selected_card_index].config(
-                highlightbackground="black", highlightthickness=3)
+                highlightbackground="black", highlightthickness=2)
         
         # Clear book selections
         self.clear_book_selections()
@@ -393,7 +440,7 @@ class AdasLibraryInterface(DogPlayerInterface):
     def handle_move_book_spaces(self, index, book_type):
         # Ask for number of spaces to move
         spaces = simpledialog.askinteger("Mover Livro", 
-                                        "Quantos espaços mover? (negativo = esquerda, positivo = direita)",
+                                        "Quantos espaços mover?\n(negativo = esquerda, positivo = direita)",
                                         minvalue=-9, maxvalue=9)
         if spaces is not None:
             target_data = [index, spaces]
@@ -402,7 +449,7 @@ class AdasLibraryInterface(DogPlayerInterface):
     def handle_move_to_edge(self, index, book_type):
         # Ask which edge
         edge = messagebox.askyesno("Mover para Extremidade", 
-                                  "Mover para a direita? (Não = esquerda)")
+                                  "Mover para a direita?\n(Não = esquerda)")
         edge_value = 1 if edge else 0
         target_data = [index, edge_value]
         self.apply_card_with_data(target_data)
@@ -414,18 +461,20 @@ class AdasLibraryInterface(DogPlayerInterface):
     
     def handle_swap_with_opponent(self, index, book_type):
         if book_type == "your":
-            # Ask for opponent book index
+            # Ask for opponent book index (visual position)
             opponent_index = simpledialog.askinteger("Trocar com Oponente", 
-                                                    "Índice do livro do oponente (0-9):",
-                                                    minvalue=0, maxvalue=9)
+                                                    "Posição visual do livro do oponente (1-10):",
+                                                    minvalue=1, maxvalue=10)
             if opponent_index is not None:
-                target_data = [index, opponent_index]
+                # Convert to 0-based index
+                visual_index = opponent_index - 1
+                target_data = [index, visual_index]
                 self.apply_card_with_data(target_data)
     
     def handle_move_master_book(self, index, book_type):
         # Ask for direction and spaces
         direction = messagebox.askyesno("Mover Livro Mestre", 
-                                       "Mover para a direita? (Não = esquerda)")
+                                       "Mover para a direita?\n(Não = esquerda)")
         direction_value = 1 if direction else 0
         
         spaces = simpledialog.askinteger("Mover Livro Mestre", 
@@ -535,7 +584,7 @@ class AdasLibraryInterface(DogPlayerInterface):
     
     def update_book_highlight(self, index, book_type, selected):
         color = "white" if selected else "black"
-        thickness = 4 if selected else 3
+        thickness = 4 if selected else 2
         
         if book_type == "your" and index < len(self.your_books):
             self.your_books[index].config(highlightbackground=color, highlightthickness=thickness)
@@ -685,7 +734,7 @@ class AdasLibraryInterface(DogPlayerInterface):
         # Clear card selection
         if self.selected_card_index is not None:
             self.card_widgets[self.selected_card_index].config(
-                highlightbackground="black", highlightthickness=3)
+                highlightbackground="black", highlightthickness=2)
         self.selected_card_index = None
         
         # Clear book selections

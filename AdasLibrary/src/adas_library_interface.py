@@ -70,7 +70,7 @@ class AdasLibraryInterface(DogPlayerInterface):
                                   font=("Helvetica", 25, "bold"), bg="#457b9d", fg="white",
                                   padx=20, pady=10, relief=tk.RAISED, bd=5,
                                   command=self.connect_to_server)
-        connect_button.pack(pady=10)
+        connect_button.pack(pady=0)
         
         # Connection status
         self.connection_status = tk.Label(self.welcome_screen, text="", 
@@ -82,7 +82,7 @@ class AdasLibraryInterface(DogPlayerInterface):
                                     font=("Helvetica", 33, "bold"), bg="#A8DADC", fg="#1D3557",
                                     padx=30, pady=15, relief=tk.RAISED, bd=5,
                                     command=self.request_match, state=tk.DISABLED)
-        self.start_button.pack(pady=30)
+        self.start_button.pack(pady=0)
         
         self.name_entry.bind("<Return>", lambda event: self.connect_to_server())
     

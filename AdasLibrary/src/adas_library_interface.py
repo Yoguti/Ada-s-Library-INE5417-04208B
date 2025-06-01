@@ -313,14 +313,20 @@ class AdasLibraryInterface(DogPlayerInterface):
             self.selected_books.append((index, book_type))
             self.update_book_highlight(index, book_type, True)
             
-            # Ask for minimum spaces required
-            min_spaces = simpledialog.askinteger("Espaços Mínimos", 
-                                                "Quantos espaços mínimos devem haver entre os livros?",
-                                                minvalue=0, maxvalue=8)
-            if min_spaces is not None:
+            # Calculate actual spaces between books
+            index1 = self.selected_books[0][0]
+            index2 = index
+            actual_spaces = abs(index2 - index1) - 1
+            
+            # Ask for exact spaces required
+            min_spaces = simpledialog.askinteger("Espaços Exatos", 
+                                                f"Os livros estão a {actual_spaces} espaços de distância. Confirme este valor:",
+                                                initialvalue=actual_spaces, minvalue=0, maxvalue=8)
+            if min_spaces is not None and min_spaces == actual_spaces:
                 target_data = [self.selected_books[0][0], self.selected_books[1][0], min_spaces]
                 self.apply_card_with_data(target_data)
             else:
+                self.show_message("Número de espaços inválido ou não corresponde à distância atual.")
                 self.clear_selections()
     
     def handle_swap_with_opponent(self, index, book_type):
@@ -523,8 +529,16 @@ class AdasLibraryInterface(DogPlayerInterface):
                                         "Quantos espaços mover? (negativo = esquerda, positivo = direita)",
                                         minvalue=-9, maxvalue=9)
         if spaces is not None:
-            target_data = [index, spaces]
-            self.apply_card_with_data(target_data)
+            # Check if the move would go beyond boundaries
+            new_index = index + spaces
+            display_length = len(self.game.local_player.get_display().get_display())
+            
+            if 0 <= new_index < display_length:
+                target_data = [index, spaces]
+                self.apply_card_with_data(target_data)
+            else:
+                self.show_message("Movimento inválido: não pode mover além dos limites da estante.")
+                self.clear_selections()
     
     def handle_move_to_edge(self, index, book_type):
         # Ask which edge

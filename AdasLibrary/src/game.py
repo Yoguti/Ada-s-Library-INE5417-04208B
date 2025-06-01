@@ -162,14 +162,23 @@ class Game:
         player_colors = [book.get_color() for book in player_books]
         master_colors = [book.get_color() for book in master_books]
         
-        master_index = 0
-        for player_color in player_colors:
-            if master_index < len(master_colors) and player_color == master_colors[master_index]:
-                master_index += 1
-                if master_index == len(master_colors):
-                    return True
+        # Create a mapping of colors in the master display to their positions
+        master_color_positions = {}
+        for i, color in enumerate(master_colors):
+            if color not in master_color_positions:
+                master_color_positions[color] = i
         
-        return False
+        # Check if the player's books are in the same relative order as the master display
+        last_position = -1
+        for color in player_colors:
+            if color in master_color_positions:
+                current_position = master_color_positions[color]
+                if current_position < last_position:
+                    return False
+                last_position = current_position
+        
+        # Check if the player has at least one book
+        return last_position >= 0
     
     def reorganizar_livros_aleatorios(self):
         """Create random books for both players"""

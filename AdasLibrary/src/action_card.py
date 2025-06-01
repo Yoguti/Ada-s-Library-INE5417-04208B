@@ -30,8 +30,8 @@ class SwapWithSpaces(ActionCard):
             # Calculate actual spaces between books
             actual_spaces = abs(index2 - index1) - 1
             
-            # Check if there are enough spaces between the books
-            if actual_spaces >= min_spaces:
+            # Check if there are exactly the specified spaces between the books
+            if actual_spaces == min_spaces:
                 display[index1], display[index2] = display[index2], display[index1]
                 return True
         return False
@@ -51,8 +51,9 @@ class MoveBookSpaces(ActionCard):
             # Calculate new position
             new_index = book_index + spaces
             
-            # Ensure we don't go past the ends
-            new_index = max(0, min(len(display) - 1, new_index))
+            # Check if the new position is within valid boundaries
+            if not (0 <= new_index < len(display)):
+                return False
             
             # Only move if the position actually changes
             if new_index != book_index:
@@ -111,14 +112,17 @@ class SwapWithOpponent(ActionCard):
             
             # Validate indices
             if not (0 <= owner_index < len(owner_display) and 
-                    0 <= opponent_index < len(opponent_display)):
+                0 <= opponent_index < len(opponent_display)):
+                return False
+        
+            # Check if books are "directly opposite" (same relative position)
+            if owner_index != opponent_index:
                 return False
             
-            # Check if books are "directly opposite" (same relative position)
-            if owner_index == opponent_index:
-                owner_display[owner_index], opponent_display[opponent_index] = \
-                    opponent_display[opponent_index], owner_display[owner_index]
-                return True
+            # Swap the books
+            owner_display[owner_index], opponent_display[opponent_index] = \
+                opponent_display[opponent_index], owner_display[owner_index]
+            return True
         return False
 
 class MoveMasterBook(ActionCard):

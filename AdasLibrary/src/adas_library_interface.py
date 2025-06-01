@@ -75,7 +75,7 @@ class AdasLibraryInterface(DogPlayerInterface):
         # Connection status
         self.connection_status = tk.Label(self.welcome_screen, text="", 
                                          font=("Helvetica", 18), bg="#315931", fg="yellow")
-        self.connection_status.pack(pady=10)
+        self.connection_status.pack(pady=0)
         
         # Start button
         self.start_button = tk.Button(self.welcome_screen, text="Procurar Partida", 

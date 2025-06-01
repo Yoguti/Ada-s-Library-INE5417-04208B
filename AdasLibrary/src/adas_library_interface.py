@@ -15,6 +15,16 @@ class AdasLibraryInterface(DogPlayerInterface):
         self.selected_target_type = None
         self.awaiting_input = False
         
+        # Enhanced interface attributes
+        self.current_card = None
+        self.selections = []
+        self.selection_mode = None
+        self.help_label = None
+        self.edge_buttons = []
+        self.edge_frame = None
+        self.clear_btn = None
+        self.apply_btn = None
+        
         # DOG Framework attributes
         self.dog_actor = None
         self.player_name = ""
@@ -27,7 +37,7 @@ class AdasLibraryInterface(DogPlayerInterface):
         self.root = tk.Tk()
         self.root.title("Ada's Library")
         self.root.geometry("1200x1000")
-        self.root.resizable(True, True)
+        self.root.resizable(False, False)
         self.root.configure(bg="#315931")
         
         # Create screens
@@ -76,7 +86,6 @@ class AdasLibraryInterface(DogPlayerInterface):
                                     command=self.start_game, state=tk.DISABLED)
         self.start_button.pack(pady=30)
 
-        
         self.name_entry.bind("<Return>", lambda event: self.connect_to_server())
     
     def setup_game_screen(self):
@@ -86,6 +95,14 @@ class AdasLibraryInterface(DogPlayerInterface):
                                      bg="#F0FFF0", relief="groove", padx=15, pady=10)
         self.message_label.pack(fill=tk.X)
         self.message_frame.pack(pady=10, fill=tk.X, padx=30)
+        
+        # Enhanced help text area
+        self.help_frame = tk.Frame(self.game_screen, bg="#315931", pady=5)
+        self.help_label = tk.Label(self.help_frame, text="Selecione uma carta para começar", 
+                                  font=("Helvetica", 16), bg="#E8F4FD", fg="#1D3557", 
+                                  relief="groove", padx=10, pady=5, wraplength=800)
+        self.help_label.pack(fill=tk.X)
+        self.help_frame.pack(pady=5, fill=tk.X, padx=30)
         
         # Turn label
         self.turn_label = tk.Label(self.game_screen, text="", font="Helvetica 24 bold", 
@@ -112,13 +129,39 @@ class AdasLibraryInterface(DogPlayerInterface):
                 bg="#315931", fg="white").pack()
         self.your_books_frame.pack(pady=(0, 10))
         
+        # Edge selection buttons (hidden by default)
+        self.edge_frame = tk.Frame(self.your_books_frame, bg="#315931")
+        
+        left_edge_btn = tk.Button(self.edge_frame, text="◀ BORDA\nESQUERDA", 
+                                 font=("Helvetica", 12, "bold"), bg="#FF6B6B", fg="white",
+                                 padx=10, pady=20, command=lambda: self.select_edge(0))
+        left_edge_btn.pack(side=tk.LEFT, padx=5)
+        
+        right_edge_btn = tk.Button(self.edge_frame, text="BORDA ▶\nDIREITA", 
+                                  font=("Helvetica", 12, "bold"), bg="#FF6B6B", fg="white",
+                                  padx=10, pady=20, command=lambda: self.select_edge(1))
+        right_edge_btn.pack(side=tk.RIGHT, padx=5)
+        
+        self.edge_buttons = [left_edge_btn, right_edge_btn]
+        
         tk.Label(self.cards_frame, text="Cartas", font="Helvetica 30", 
                 bg="#315931", fg="white").pack()
         self.cards_frame.pack(pady=(0, 10))
         
         self.buttons_frame.pack(pady=30)
         
-        # Buttons
+        # Enhanced buttons
+        self.clear_btn = tk.Button(self.buttons_frame, text="Limpar Seleção", 
+                                  bg="#FFA500", fg="white", font="Helvetica 20",
+                                  padx=15, pady=8, command=self.clear_enhanced_selections)
+        self.clear_btn.pack(side=tk.LEFT, padx=10)
+        
+        self.apply_btn = tk.Button(self.buttons_frame, text="Aplicar Carta", 
+                                  bg="#28A745", fg="white", font="Helvetica 20",
+                                  padx=15, pady=8, command=self.apply_current_card,
+                                  state=tk.DISABLED)
+        self.apply_btn.pack(side=tk.LEFT, padx=10)
+        
         self.discard_button = tk.Button(self.buttons_frame, text="Descartar", bg="#FF6B6B", fg="white",
                                        font="Helvetica 30", padx=20, pady=10,
                                        command=self.discard_card)
@@ -180,7 +223,7 @@ class AdasLibraryInterface(DogPlayerInterface):
             return
         
         # Request match start through DOG
-        start_status = self.dog_actor.start_match(2)
+        start_status = self.dog_actor.start_match(2)  # Ada's Library is for 2 players
         
         if start_status.code == '0':
             self.show_message("Você está offline")
@@ -242,7 +285,9 @@ class AdasLibraryInterface(DogPlayerInterface):
                 card_widget.pack_propagate(False)
                 card_widget.pack(side=tk.LEFT, padx=10)
                 
-                label = tk.Label(card_widget, text=card.description, bg="white", 
+                # Use user-friendly name if available
+                display_name = getattr(card, 'user_friendly_name', card.description)
+                label = tk.Label(card_widget, text=display_name, bg="white", 
                                 wraplength=90, font="Helvetica 20")
                 label.pack(pady=(20, 0))
                 
@@ -270,6 +315,9 @@ class AdasLibraryInterface(DogPlayerInterface):
         self.selected_card_index = None
         self.selected_target_type = None
         self.awaiting_input = False
+        
+        # Clear enhanced selections
+        self.clear_enhanced_selections()
     
     def create_card_click(self, index):
         def click(event):
@@ -292,27 +340,49 @@ class AdasLibraryInterface(DogPlayerInterface):
         return click
     
     def click_card(self, index):
+        """Enhanced card selection with better feedback"""
         if not self.game.verificar_turno_do_jogador():
             self.show_message("Não é seu turno!")
             return
         
-        # Clear previous card selection
-        if self.selected_card_index is not None:
-            self.card_widgets[self.selected_card_index].config(
-                highlightbackground="black", highlightthickness=3)
+        # Clear previous selections
+        self.clear_enhanced_selections()
         
-        # Clear book selections
-        self.clear_book_selections()
-        
-        # Select new card
-        self.selected_card_index = index
-        self.card_widgets[index].config(highlightbackground="yellow", highlightthickness=4)
-        
-        # Get card type to determine valid targets
+        # Get the card
         card = self.game.local_player.get_hand().get_card(index)
-        if card:
-            self.selected_target_type = card.get_tipo_alvo()
-            self.show_message(f"Carta selecionada: {card.description}")
+        if not card:
+            return
+        
+        # Update UI
+        self.current_card = card
+        self.selected_card_index = index
+        
+        # Highlight selected card
+        for i, widget in enumerate(self.card_widgets):
+            if i == index:
+                widget.config(highlightbackground="#FFD700", highlightthickness=4)
+            else:
+                widget.config(highlightbackground="black", highlightthickness=3)
+        
+        # Show help text
+        help_text = getattr(card, 'get_help_text', lambda: "Carta selecionada")()
+        user_name = getattr(card, 'user_friendly_name', card.description)
+        self.help_label.config(text=f"🎯 {user_name}: {help_text}")
+        
+        # Set up selection mode
+        required = getattr(card, 'get_required_selections', lambda: {"count": 1, "type": "books"})()
+        self.selection_mode = required["type"]
+        
+        # Show edge buttons if needed
+        if "edge" in self.selection_mode:
+            self.edge_frame.pack(pady=10)
+        else:
+            self.edge_frame.pack_forget()
+        
+        # Special handling for cards that need no selections
+        if required["count"] == 0:
+            self.apply_btn.config(state=tk.NORMAL)
+            self.help_label.config(text=f"✅ {user_name}: Pronto para aplicar!")
     
     def click_your_book(self, index):
         if not self.game.verificar_turno_do_jogador():
@@ -323,11 +393,7 @@ class AdasLibraryInterface(DogPlayerInterface):
             self.show_message("Selecione uma carta primeiro!")
             return
         
-        if self.selected_target_type not in ["personal", "opponent"]:
-            self.show_message("Esta carta não pode ser usada em seus livros!")
-            return
-        
-        self.handle_book_selection(index, "your")
+        self.handle_enhanced_book_selection(index, "your")
     
     def click_opponent_book(self, index):
         if not self.game.verificar_turno_do_jogador():
@@ -338,11 +404,7 @@ class AdasLibraryInterface(DogPlayerInterface):
             self.show_message("Selecione uma carta primeiro!")
             return
         
-        if self.selected_target_type != "opponent":
-            self.show_message("Esta carta não pode ser usada nos livros do oponente!")
-            return
-        
-        self.handle_book_selection(index, "opponent")
+        self.handle_enhanced_book_selection(index, "opponent")
     
     def click_objective_book(self, index):
         if not self.game.verificar_turno_do_jogador():
@@ -353,87 +415,209 @@ class AdasLibraryInterface(DogPlayerInterface):
             self.show_message("Selecione uma carta primeiro!")
             return
         
-        if self.selected_target_type != "master":
-            self.show_message("Esta carta não pode ser usada nos livros mestres!")
+        self.handle_enhanced_book_selection(index, "master")
+    
+    def handle_enhanced_book_selection(self, index, book_type):
+        """Enhanced book selection with validation"""
+        if not self.current_card:
+            self.show_message("Selecione uma carta primeiro!")
             return
         
-        self.handle_book_selection(index, "master")
-    
-    def handle_book_selection(self, index, book_type):
-        card = self.game.local_player.get_hand().get_card(self.selected_card_index)
-        if not card:
+        # Check if this selection is valid for current card
+        target_type = getattr(self.current_card, 'get_tipo_alvo', lambda: "personal")()
+        
+        if target_type == "personal" and book_type != "your":
+            self.show_message("Esta carta só funciona nos seus livros!")
+            return
+        elif target_type == "opponent" and book_type not in ["your", "opponent"]:
+            self.show_message("Esta carta precisa de livros seus e do oponente!")
+            return
+        elif target_type == "master" and book_type != "master":
+            self.show_message("Esta carta só funciona nos livros mestres!")
             return
         
-        # Handle different card types
-        if isinstance(card, SwapWithSpaces):
-            self.handle_swap_with_spaces(index, book_type)
-        elif isinstance(card, MoveBookSpaces):
-            self.handle_move_book_spaces(index, book_type)
-        elif isinstance(card, MoveToEdge):
-            self.handle_move_to_edge(index, book_type)
-        elif isinstance(card, SwapEdges):
-            self.handle_swap_edges()
-        elif isinstance(card, SwapWithOpponent):
-            self.handle_swap_with_opponent(index, book_type)
-        elif isinstance(card, MoveMasterBook):
-            self.handle_move_master_book(index, book_type)
+        # Add selection
+        self.selections.append((index, book_type))
+        
+        # Update visual feedback
+        self.update_enhanced_book_highlight(index, book_type, True)
+        
+        # Check if we have enough selections
+        required = getattr(self.current_card, 'get_required_selections', lambda: {"count": 1})()
+        
+        if len(self.selections) >= required["count"]:
+            self.validate_and_enable_apply()
+        else:
+            remaining = required["count"] - len(self.selections)
+            self.help_label.config(text=f"📍 Selecione mais {remaining} item(s)")
     
-    def handle_swap_with_spaces(self, index, book_type):
-        if len(self.selected_books) == 0:
-            self.selected_books.append((index, book_type))
-            self.update_book_highlight(index, book_type, True)
-            self.show_message("Selecione o segundo livro para trocar.")
-        elif len(self.selected_books) == 1:
-            self.selected_books.append((index, book_type))
-            self.update_book_highlight(index, book_type, True)
-            # Apply the card
-            target_data = [self.selected_books[0][0], self.selected_books[1][0]]
-            self.apply_card_with_data(target_data)
+    def select_edge(self, edge_value):
+        """Handle edge selection for MoveToEdge card"""
+        if not self.current_card or not isinstance(self.current_card, MoveToEdge):
+            return
+        
+        self.selections.append((edge_value, "edge"))
+        
+        # Highlight selected edge button
+        for i, btn in enumerate(self.edge_buttons):
+            if i == edge_value:
+                btn.config(bg="#28A745")
+            else:
+                btn.config(bg="#FF6B6B")
+        
+        self.validate_and_enable_apply()
     
-    def handle_move_book_spaces(self, index, book_type):
-        # Ask for number of spaces to move
-        spaces = simpledialog.askinteger("Mover Livro", 
-                                        "Quantos espaços mover? (negativo = esquerda, positivo = direita)",
-                                        minvalue=-9, maxvalue=9)
-        if spaces is not None:
-            target_data = [index, spaces]
-            self.apply_card_with_data(target_data)
+    def validate_and_enable_apply(self):
+        """Validate current selections and enable apply button if valid"""
+        if not self.current_card:
+            return
+        
+        # Extract just the indices for validation
+        if self.selection_mode == "book_and_edge":
+            if len(self.selections) >= 2:
+                book_selections = [s for s in self.selections if s[1] != "edge"]
+                edge_selections = [s for s in self.selections if s[1] == "edge"]
+                
+                if book_selections and edge_selections:
+                    indices = [book_selections[0][0], edge_selections[0][0]]
+                else:
+                    return
+            else:
+                return
+        else:
+            indices = [s[0] for s in self.selections]
+        
+        # Get display length for validation
+        target_type = getattr(self.current_card, 'get_tipo_alvo', lambda: "personal")()
+        if target_type == "personal":
+            display_length = len(self.game.local_player.get_display().get_display())
+        elif target_type == "master":
+            display_length = len(self.game.main_display.main_display)
+        else:
+            display_length = 10  # Default
+        
+        # Validate if card has validation method
+        if hasattr(self.current_card, 'validate_selection'):
+            is_valid, message = self.current_card.validate_selection(indices, display_length)
+            
+            if is_valid:
+                self.help_label.config(text=f"✅ {message}")
+                self.apply_btn.config(state=tk.NORMAL)
+            else:
+                self.help_label.config(text=f"❌ {message}")
+                self.apply_btn.config(state=tk.DISABLED)
+        else:
+            # Fallback for cards without validation
+            self.apply_btn.config(state=tk.NORMAL)
     
-    def handle_move_to_edge(self, index, book_type):
-        # Ask which edge
-        edge = messagebox.askyesno("Mover para Extremidade", 
-                                  "Mover para a direita? (Não = esquerda)")
-        edge_value = 1 if edge else 0
-        target_data = [index, edge_value]
-        self.apply_card_with_data(target_data)
-    
-    def handle_swap_edges(self):
-        # No additional input needed
+    def apply_current_card(self):
+        """Apply the currently selected card with current selections"""
+        if not self.current_card or not self.game.verificar_turno_do_jogador():
+            return
+        
+        # Prepare target data based on card type
         target_data = []
-        self.apply_card_with_data(target_data)
-    
-    def handle_swap_with_opponent(self, index, book_type):
-        if book_type == "your":
-            # Ask for opponent book index
-            opponent_index = simpledialog.askinteger("Trocar com Oponente", 
-                                                    "Índice do livro do oponente (0-9):",
-                                                    minvalue=0, maxvalue=9)
-            if opponent_index is not None:
-                target_data = [index, opponent_index]
-                self.apply_card_with_data(target_data)
-    
-    def handle_move_master_book(self, index, book_type):
-        # Ask for direction and spaces
-        direction = messagebox.askyesno("Mover Livro Mestre", 
-                                       "Mover para a direita? (Não = esquerda)")
-        direction_value = 1 if direction else 0
         
-        spaces = simpledialog.askinteger("Mover Livro Mestre", 
-                                        "Quantos espaços mover? (1 ou 2)",
-                                        minvalue=1, maxvalue=2)
-        if spaces is not None:
-            target_data = [index, direction_value, spaces]
-            self.apply_card_with_data(target_data)
+        if isinstance(self.current_card, SwapWithSpaces):
+            target_data = [self.selections[0][0], self.selections[1][0]]
+        
+        elif isinstance(self.current_card, MoveBookSpaces):
+            target_data = [self.selections[0][0], self.selections[1][0]]
+        
+        elif isinstance(self.current_card, MoveToEdge):
+            book_selection = next((s for s in self.selections if s[1] != "edge"), None)
+            edge_selection = next((s for s in self.selections if s[1] == "edge"), None)
+            if book_selection and edge_selection:
+                target_data = [book_selection[0], edge_selection[0]]
+        
+        elif isinstance(self.current_card, SwapEdges):
+            target_data = []
+        
+        elif isinstance(self.current_card, SwapWithOpponent):
+            your_book = next((s for s in self.selections if s[1] == "your"), None)
+            opponent_book = next((s for s in self.selections if s[1] == "opponent"), None)
+            if your_book and opponent_book:
+                target_data = [your_book[0], opponent_book[0]]
+        
+        elif isinstance(self.current_card, MoveMasterBook):
+            target_data = [self.selections[0][0], self.selections[1][0]]
+        
+        # Apply the card
+        success = self.game.apply_card_effect(self.selected_card_index, target_data)
+        
+        if success:
+            self.show_message("✅ Carta aplicada com sucesso!")
+            
+            # Check for victory
+            game_over = self.game.avaliar_fim_da_partida()
+            
+            if game_over:
+                self.end_game(self.game.local_player.get_name())
+                return
+            
+            # Send move through DOG if available
+            if hasattr(self, 'dog_actor') and self.dog_actor:
+                move_data = {
+                    'action': 'play_card',
+                    'card_type': self.current_card.description,
+                    'target_data': target_data,
+                    'match_status': 'finished' if game_over else 'next'
+                }
+                self.dog_actor.send_move(move_data)
+            
+            # Switch turns and update display
+            self.game.trocar_turno_jogador()
+            self.clear_enhanced_selections()
+            self.update_display()
+            self.show_message("Aguardando jogada do oponente...")
+            
+        else:
+            self.show_message("❌ Não foi possível aplicar a carta!")
+    
+    def clear_enhanced_selections(self):
+        """Clear all current selections and reset UI"""
+        # Clear book highlights
+        for index, book_type in self.selections:
+            if book_type != "edge":
+                self.update_enhanced_book_highlight(index, book_type, False)
+        
+        # Reset edge buttons
+        for btn in self.edge_buttons:
+            btn.config(bg="#FF6B6B")
+        
+        # Clear selections
+        self.selections = []
+        self.current_card = None
+        
+        # Reset UI elements
+        self.apply_btn.config(state=tk.DISABLED)
+        self.edge_frame.pack_forget()
+        
+        # Clear card highlights
+        for widget in self.card_widgets:
+            widget.config(highlightbackground="black", highlightthickness=3)
+        
+        self.selected_card_index = None
+        self.help_label.config(text="Selecione uma carta para começar")
+    
+    def update_enhanced_book_highlight(self, index, book_type, selected):
+        """Update book highlighting with better visual feedback"""
+        if selected:
+            color = "#00FF00"  # Bright green for selected
+            thickness = 5
+        else:
+            color = "black"
+            thickness = 3
+        
+        try:
+            if book_type == "your" and index < len(self.your_books):
+                self.your_books[index].config(highlightbackground=color, highlightthickness=thickness)
+            elif book_type == "opponent" and index < len(self.opponent_books):
+                self.opponent_books[index].config(highlightbackground=color, highlightthickness=thickness)
+            elif book_type == "master" and index < len(self.objective_books):
+                self.objective_books[index].config(highlightbackground=color, highlightthickness=thickness)
+        except (IndexError, AttributeError):
+            pass  # Ignore errors if widgets don't exist yet
     
     def connect_to_server(self):
         player_name = self.name_entry.get().strip()
@@ -489,61 +673,6 @@ class AdasLibraryInterface(DogPlayerInterface):
             }
             self.dog_actor.send_move(initial_state)
     
-    def apply_card_with_data(self, target_data):
-        if not self.game.verificar_turno_do_jogador():
-            self.show_message("Não é seu turno!")
-            return
-        
-        card = self.game.local_player.get_hand().get_card(self.selected_card_index)
-        if not card:
-            return
-        
-        success = self.game.apply_card_effect(self.selected_card_index, target_data)
-        
-        if success:
-            self.show_message("Carta aplicada com sucesso!")
-            
-            # Check for victory
-            game_over = self.game.avaliar_fim_da_partida()
-            
-            # Send move through DOG
-            move_data = {
-                'action': 'play_card',
-                'card_type': card.description,
-                'target_data': target_data,
-                'match_status': 'finished' if game_over else 'next'
-            }
-            
-            if self.dog_actor:
-                self.dog_actor.send_move(move_data)
-            
-            if game_over:
-                self.end_game(self.game.local_player.get_name())
-                return
-            
-            # Switch turns
-            self.game.trocar_turno_jogador()
-            
-            # Clear selections and update display
-            self.clear_selections()
-            self.update_display()
-            
-            self.show_message("Aguardando jogada do oponente...")
-        else:
-            self.show_message("Não foi possível aplicar a carta!")
-            self.clear_selections()
-    
-    def update_book_highlight(self, index, book_type, selected):
-        color = "white" if selected else "black"
-        thickness = 4 if selected else 3
-        
-        if book_type == "your" and index < len(self.your_books):
-            self.your_books[index].config(highlightbackground=color, highlightthickness=thickness)
-        elif book_type == "opponent" and index < len(self.opponent_books):
-            self.opponent_books[index].config(highlightbackground=color, highlightthickness=thickness)
-        elif book_type == "master" and index < len(self.objective_books):
-            self.objective_books[index].config(highlightbackground=color, highlightthickness=thickness)
-    
     def discard_card(self):
         if not self.game.verificar_turno_do_jogador():
             self.show_message("Não é seu turno!")
@@ -573,7 +702,7 @@ class AdasLibraryInterface(DogPlayerInterface):
             self.game.trocar_turno_jogador()
             
             # Clear selections and update display
-            self.clear_selections()
+            self.clear_enhanced_selections()
             self.update_display()
             
             self.show_message("Aguardando jogada do oponente...")
@@ -648,7 +777,6 @@ class AdasLibraryInterface(DogPlayerInterface):
         """DOG Framework method - called when opponent withdraws"""
         self.show_message("O oponente abandonou a partida!")
         self.match_in_progress = False
-        self.reset_button.config(state=tk.NORMAL)
         
         # Show game over screen with withdrawal message
         self.result_label.config(text="Partida encerrada - Oponente desistiu")
@@ -677,7 +805,6 @@ class AdasLibraryInterface(DogPlayerInterface):
         self.name_entry.delete(0, tk.END)
         self.name_entry.config(state=tk.NORMAL)
         self.start_button.config(state=tk.DISABLED)
-        self.reset_button.config(state=tk.DISABLED)
         
         self.show_message("Jogo resetado para o estado inicial.")
     
@@ -695,6 +822,17 @@ class AdasLibraryInterface(DogPlayerInterface):
         for index, book_type in self.selected_books:
             self.update_book_highlight(index, book_type, False)
         self.selected_books = []
+    
+    def update_book_highlight(self, index, book_type, selected):
+        color = "white" if selected else "black"
+        thickness = 4 if selected else 3
+        
+        if book_type == "your" and index < len(self.your_books):
+            self.your_books[index].config(highlightbackground=color, highlightthickness=thickness)
+        elif book_type == "opponent" and index < len(self.opponent_books):
+            self.opponent_books[index].config(highlightbackground=color, highlightthickness=thickness)
+        elif book_type == "master" and index < len(self.objective_books):
+            self.objective_books[index].config(highlightbackground=color, highlightthickness=thickness)
     
     def update_display(self):
         # Update turn label
@@ -738,7 +876,6 @@ class AdasLibraryInterface(DogPlayerInterface):
     def end_game(self, winner):
         self.result_label.config(text=f"Vencedor: {winner}")
         self.match_in_progress = False
-        self.reset_button.config(state=tk.NORMAL)
         self.show_screen("game_over")
     
     def reset_game(self):

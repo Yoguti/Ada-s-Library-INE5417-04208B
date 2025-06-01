@@ -31,3 +31,19 @@ class MasterDisplay:
             self.main_display.insert(new_index, book)
             return True
         return False
+    
+    def move_book_to_position(self, from_index, to_index):
+        """Move a master book from one position to another (enhanced version)"""
+        if (0 <= from_index < len(self.main_display) and 
+            0 <= to_index < len(self.main_display) and
+            from_index != to_index):
+            
+            # Check distance constraint (max 2 spaces)
+            distance = abs(to_index - from_index)
+            if distance > 2:
+                return False
+            
+            book = self.main_display.pop(from_index)
+            self.main_display.insert(to_index, book)
+            return True
+        return False

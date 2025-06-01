@@ -22,28 +22,18 @@ class MasterDisplay:
     
     def move_book(self, from_index, direction, spaces):
         """Move a master book left or right by specified spaces"""
-        if 0 <= from_index < len(self.main_display):
-            book = self.main_display.pop(from_index)
-            if direction == "left":
-                new_index = max(0, from_index - spaces)
-            else:  # right
-                new_index = min(len(self.main_display), from_index + spaces)
-            self.main_display.insert(new_index, book)
-            return True
-        return False
-    
-    def move_book_to_position(self, from_index, to_index):
-        """Move a master book from one position to another (enhanced version)"""
-        if (0 <= from_index < len(self.main_display) and 
-            0 <= to_index < len(self.main_display) and
-            from_index != to_index):
-            
-            # Check distance constraint (max 2 spaces)
-            distance = abs(to_index - from_index)
-            if distance > 2:
-                return False
-            
-            book = self.main_display.pop(from_index)
-            self.main_display.insert(to_index, book)
-            return True
-        return False
+        if not (0 <= from_index < len(self.main_display)):
+            return False
+        
+        if spaces not in [1, 2]:
+            return False
+        
+        book = self.main_display.pop(from_index)
+        
+        if direction == "left":
+            new_index = max(0, from_index - spaces)
+        else:  # right
+            new_index = min(len(self.main_display), from_index + spaces)
+        
+        self.main_display.insert(new_index, book)
+        return True

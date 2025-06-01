@@ -4,6 +4,7 @@ def main():
     print("Iniciando Ada's Library...")
     print("Jogo modelado com classes orientadas a objetos")
     print("Integrado com DOG Framework para jogos online")
+    print("Versão corrigida com matchmaking adequado e cartas funcionais")
     
     interface = AdasLibraryInterface()
     interface.run()

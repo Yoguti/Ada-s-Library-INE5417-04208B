@@ -180,7 +180,7 @@ class AdasLibraryInterface(DogPlayerInterface):
             return
         
         # Request match start through DOG
-        start_status = self.dog_actor.start_match(2)  # Ada's Library is for 2 players
+        start_status = self.dog_actor.start_match(2)
         
         if start_status.code == '0':
             self.show_message("Você está offline")

@@ -304,7 +304,7 @@ class AdasLibraryInterface(DogPlayerInterface):
             self.dog_actor.send_move(initial_state)
     
     def handle_swap_with_spaces(self, index, book_type):
-        """Improved swap with spaces handling"""
+        """Handle swap with spaces card - allows minimum spaces between books"""
         if len(self.selected_books) == 0:
             self.selected_books.append((index, book_type))
             self.update_book_highlight(index, book_type, True)
@@ -313,24 +313,18 @@ class AdasLibraryInterface(DogPlayerInterface):
             self.selected_books.append((index, book_type))
             self.update_book_highlight(index, book_type, True)
             
-            # Calculate actual spaces between books
-            index1 = self.selected_books[0][0]
-            index2 = index
-            actual_spaces = abs(index2 - index1) - 1
-            
-            # Ask for exact spaces required
-            min_spaces = simpledialog.askinteger("Espaços Exatos", 
-                                                f"Os livros estão a {actual_spaces} espaços de distância. Confirme este valor:",
-                                                initialvalue=actual_spaces, minvalue=0, maxvalue=8)
-            if min_spaces is not None and min_spaces == actual_spaces:
+            # Ask for minimum spaces required
+            min_spaces = simpledialog.askinteger("Espaços Mínimos", 
+                                                "Quantos espaços mínimos devem haver entre os livros?",
+                                                minvalue=0, maxvalue=8)
+            if min_spaces is not None:
                 target_data = [self.selected_books[0][0], self.selected_books[1][0], min_spaces]
                 self.apply_card_with_data(target_data)
             else:
-                self.show_message("Número de espaços inválido ou não corresponde à distância atual.")
                 self.clear_selections()
     
     def handle_swap_with_opponent(self, index, book_type):
-        """Improved opponent swap - only allows directly opposite positions"""
+        """Handle opponent swap - only allows directly opposite positions"""
         if book_type == "your":
             # The opponent book must be at the same index (directly opposite)
             opponent_index = index  # Same position = directly opposite
@@ -529,16 +523,8 @@ class AdasLibraryInterface(DogPlayerInterface):
                                         "Quantos espaços mover? (negativo = esquerda, positivo = direita)",
                                         minvalue=-9, maxvalue=9)
         if spaces is not None:
-            # Check if the move would go beyond boundaries
-            new_index = index + spaces
-            display_length = len(self.game.local_player.get_display().get_display())
-            
-            if 0 <= new_index < display_length:
-                target_data = [index, spaces]
-                self.apply_card_with_data(target_data)
-            else:
-                self.show_message("Movimento inválido: não pode mover além dos limites da estante.")
-                self.clear_selections()
+            target_data = [index, spaces]
+            self.apply_card_with_data(target_data)
     
     def handle_move_to_edge(self, index, book_type):
         # Ask which edge
@@ -578,37 +564,50 @@ class AdasLibraryInterface(DogPlayerInterface):
         success = self.game.apply_card_effect(self.selected_card_index, target_data)
         
         if success:
-            self.show_message("Carta aplicada com sucesso!")
+            # Visual feedback: highlight the used card
+            used_widget = self.card_widgets[self.selected_card_index]
+            used_widget.config(bg="lightgreen", highlightbackground="green")
+            self.root.update()
             
-            # Check for victory
-            game_over = self.game.avaliar_fim_da_partida()
+            self.show_message("Carta aplicada com sucesso! Aguarde...")
             
-            # Send move through DOG
-            move_data = {
-                'action': 'play_card',
-                'card_type': card.description,
-                'target_data': target_data,
-                'match_status': 'finished' if game_over else 'next'
-            }
-            
-            if self.dog_actor:
-                self.dog_actor.send_move(move_data)
-            
-            if game_over:
-                self.end_game(self.game.local_player.get_name())
-                return
-            
-            # Switch turns
-            self.game.trocar_turno_jogador()
-            
-            # Clear selections and update display
-            self.clear_selections()
-            self.update_display()
-            
-            self.show_message("Aguardando jogada do oponente...")
+            # Wait a moment to show the card was used
+            self.root.after(800, lambda: self._complete_card_play(card, target_data))
         else:
             self.show_message("Não foi possível aplicar a carta!")
             self.clear_selections()
+
+    def _complete_card_play(self, card, target_data):
+        """Complete the card play action after visual delay"""
+        # Check for victory
+        game_over = self.game.avaliar_fim_da_partida()
+        
+        # Send move through DOG
+        move_data = {
+            'action': 'play_card',
+            'card_type': card.description,
+            'target_data': target_data,
+            'match_status': 'finished' if game_over else 'next'
+        }
+        
+        if self.dog_actor:
+            self.dog_actor.send_move(move_data)
+        
+        if game_over:
+            self.end_game(self.game.local_player.get_name())
+            return
+        
+        # Switch turns
+        self.game.trocar_turno_jogador()
+        
+        # Clear selections and update display
+        self.clear_selections()
+        self.update_display()
+        
+        # Update card display to show new card
+        self._update_card_display()
+        
+        self.show_message("Nova carta recebida! Aguardando jogada do oponente...")
     
     def update_book_highlight(self, index, book_type, selected):
         color = "white" if selected else "black"
@@ -622,6 +621,7 @@ class AdasLibraryInterface(DogPlayerInterface):
             self.objective_books[index].config(highlightbackground=color, highlightthickness=thickness)
     
     def discard_card(self):
+        """Discard selected card with visual feedback"""
         if not self.game.verificar_turno_do_jogador():
             self.show_message("Não é seu turno!")
             return
@@ -630,12 +630,27 @@ class AdasLibraryInterface(DogPlayerInterface):
             self.show_message("Selecione uma carta para descartar!")
             return
         
+        # Visual feedback: show card being discarded
+        discarded_widget = self.card_widgets[self.selected_card_index]
+        discarded_widget.config(bg="#FF6B6B", highlightbackground="red", highlightthickness=4)
+        self.root.update()
+        
+        self.show_message("Carta descartada! Aguarde...")
+        
+        # Wait a moment to show the discard
+        self.root.after(1000, self._complete_discard)
+
+    def _complete_discard(self):
+        """Complete the discard action after visual delay"""
+        # Add card to discard pile before removing from hand
+        card = self.game.local_player.get_hand().get_card(self.selected_card_index)
+        if card:
+            self.game.action_card_deck.add_to_discard(card)
+        
         # Remove card and draw new one
         removed_card = self.game.remover_carta_selecionada_da_mao(self.selected_card_index)
         
         if removed_card:
-            self.show_message("Carta descartada!")
-            
             # Send discard through DOG
             discard_data = {
                 'action': 'discard_card',
@@ -645,15 +660,41 @@ class AdasLibraryInterface(DogPlayerInterface):
             
             if self.dog_actor:
                 self.dog_actor.send_move(discard_data)
-            
+        
             # Switch turns
             self.game.trocar_turno_jogador()
-            
+        
             # Clear selections and update display
             self.clear_selections()
             self.update_display()
+        
+            # Recreate the card widgets to show the new card
+            self._update_card_display()
+        
+            self.show_message("Nova carta recebida! Aguardando jogada do oponente...")
+
+    def _update_card_display(self):
+        """Update only the card display area"""
+        # Clear existing card widgets
+        for card in self.card_widgets:
+            card.destroy()
+        self.card_widgets = []
+        
+        # Recreate cards
+        if self.game.local_player:
+            cards = self.game.local_player.get_hand().get_cartas()
+            for i, card in enumerate(cards):
+                card_widget = tk.Frame(self.cards_frame, width=100, height=140, bg="white",
+                                      highlightbackground="black", highlightthickness=3)
+                card_widget.pack_propagate(False)
+                card_widget.pack(side=tk.LEFT, padx=10)
             
-            self.show_message("Aguardando jogada do oponente...")
+                label = tk.Label(card_widget, text=card.description, bg="white", 
+                                wraplength=90, font="Helvetica 20")
+                label.pack(pady=(20, 0))
+            
+                card_widget.bind("<Button-1>", self.create_card_click(i))
+                self.card_widgets.append(card_widget)
     
     def receive_start(self, start_status):
         """DOG Framework method - called when match starts remotely"""

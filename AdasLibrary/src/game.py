@@ -152,7 +152,7 @@ class Game:
         return False
     
     def check_victory_condition(self, player):
-        """Check if player's books match the master display order"""
+        """Check if player's books match the master display order - regardless of color completeness"""
         player_books = player.get_display().get_display()
         master_books = self.main_display.main_display
         
@@ -177,7 +177,7 @@ class Game:
                     return False
                 last_position = current_position
         
-        # Check if the player has at least one book
+        # Player wins if they have at least one book that matches the master display order
         return last_position >= 0
     
     def reorganizar_livros_aleatorios(self):
@@ -220,12 +220,22 @@ class Game:
         self.game_state = status
     
     def remover_carta_selecionada_da_mao(self, card_index):
+        """Remove selected card from hand and draw a new one"""
         if self.local_player:
             removed_card = self.local_player.get_hand().remove_card(card_index)
             if removed_card:
                 new_card = self.action_card_deck.draw_card()
+                
+                # If deck is empty, reshuffle
+                if new_card is None and self.action_card_deck.is_empty:
+                    print("Deck vazio! Embaralhando novamente...")
+                    self.action_card_deck.reshuffle_deck()
+                    new_card = self.action_card_deck.draw_card()
+                
                 if new_card:
                     self.local_player.get_hand().add_card(new_card)
+                else:
+                    print("Aviso: Não foi possível sacar uma nova carta!")
             return removed_card
         return None
     

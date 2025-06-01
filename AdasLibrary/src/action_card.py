@@ -16,6 +16,7 @@ class SwapWithSpaces(ActionCard):
         super().__init__("Trocar dois livros com espaços específicos")
     
     def apply(self, owner, target=None):
+        """Swap two books with a specified number of spaces between them"""
         if target and len(target) >= 3:
             index1, index2, min_spaces = target[0], target[1], target[2]
             display = owner.get_display().get_display()
@@ -30,8 +31,8 @@ class SwapWithSpaces(ActionCard):
             # Calculate actual spaces between books
             actual_spaces = abs(index2 - index1) - 1
             
-            # Check if there are exactly the specified spaces between the books
-            if actual_spaces == min_spaces:
+            # Check if there are at least the specified spaces between the books
+            if actual_spaces >= min_spaces:
                 display[index1], display[index2] = display[index2], display[index1]
                 return True
         return False
@@ -41,6 +42,7 @@ class MoveBookSpaces(ActionCard):
         super().__init__("Mover livro por espaços")
     
     def apply(self, owner, target=None):
+        """Move a book a specified number of spaces left or right, never past the end"""
         if target and len(target) >= 2:
             book_index, spaces = target[0], target[1]
             display = owner.get_display().get_display()
@@ -51,7 +53,7 @@ class MoveBookSpaces(ActionCard):
             # Calculate new position
             new_index = book_index + spaces
             
-            # Check if the new position is within valid boundaries
+            # Ensure we don't go past the ends (rule: never past the end of display)
             if not (0 <= new_index < len(display)):
                 return False
             
@@ -67,6 +69,7 @@ class MoveToEdge(ActionCard):
         super().__init__("Mover livro para extremidade")
     
     def apply(self, owner, target=None):
+        """Move a book to either end of the display"""
         if target and len(target) >= 2:
             book_index, edge = target[0], target[1]  # edge: 0=left, 1=right
             display = owner.get_display().get_display()
@@ -91,6 +94,7 @@ class SwapEdges(ActionCard):
         super().__init__("Trocar livros das extremidades")
     
     def apply(self, owner, target=None):
+        """Swap the books on the ends of the display"""
         display = owner.get_display().get_display()
         if len(display) >= 2:
             display[0], display[-1] = display[-1], display[0]
@@ -105,6 +109,7 @@ class SwapWithOpponent(ActionCard):
         return "opponent"
     
     def apply(self, owner, target=None):
+        """Swap a book with the book in opponent's display directly opposite"""
         if target and len(target) >= 3:
             owner_index, opponent_index, opponent = target[0], target[1], target[2]
             owner_display = owner.get_display().get_display()
@@ -112,17 +117,14 @@ class SwapWithOpponent(ActionCard):
             
             # Validate indices
             if not (0 <= owner_index < len(owner_display) and 
-                0 <= opponent_index < len(opponent_display)):
-                return False
-        
-            # Check if books are "directly opposite" (same relative position)
-            if owner_index != opponent_index:
+                    0 <= opponent_index < len(opponent_display)):
                 return False
             
-            # Swap the books
-            owner_display[owner_index], opponent_display[opponent_index] = \
-                opponent_display[opponent_index], owner_display[owner_index]
-            return True
+            # Check if books are "directly opposite" (same relative position)
+            if owner_index == opponent_index:
+                owner_display[owner_index], opponent_display[opponent_index] = \
+                    opponent_display[opponent_index], owner_display[owner_index]
+                return True
         return False
 
 class MoveMasterBook(ActionCard):
@@ -133,6 +135,7 @@ class MoveMasterBook(ActionCard):
         return "master"
     
     def apply(self, owner, target=None):
+        """Move a book in the master display 1 or 2 spaces to the left or right"""
         if target and len(target) >= 4:
             book_index, direction, spaces, master_display = target[0], target[1], target[2], target[3]
             

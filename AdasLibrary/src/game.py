@@ -152,7 +152,7 @@ class Game:
         return False
     
     def check_victory_condition(self, player):
-        """Check if player's books match the master display order - regardless of color completeness"""
+        """Check if player's books match the master display order"""
         player_books = player.get_display().get_display()
         master_books = self.main_display.main_display
         

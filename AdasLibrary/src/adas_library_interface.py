@@ -200,6 +200,7 @@ class AdasLibraryInterface(DogPlayerInterface):
             self.game_over_screen.pack(fill=tk.BOTH, expand=True)
     
     def connect_to_server(self):
+        """Connect to the DOG server with player name"""
         player_name = self.name_entry.get().strip()
         if not player_name:
             self.connection_status.config(text="Por favor, digite seu nome!", fg="red")
@@ -236,6 +237,7 @@ class AdasLibraryInterface(DogPlayerInterface):
         
         # Set waiting state BEFORE calling start_match
         self.waiting_for_opponent = True
+        self.game.waiting_for_match = True
         self.show_screen("waiting")
         
         # Use DOG's start_match method
@@ -268,6 +270,12 @@ class AdasLibraryInterface(DogPlayerInterface):
         
         if self.match_in_progress:
             print("Já existe uma partida em andamento!")
+            return
+        
+        if len(start_status.players) < 2:
+            print("Número insuficiente de jogadores para iniciar partida!")
+            self.waiting_message.config(text="Número insuficiente de jogadores!")
+            self.cancel_match_request()
             return
         
         self.match_in_progress = True
@@ -700,24 +708,25 @@ class AdasLibraryInterface(DogPlayerInterface):
         """DOG Framework method - called when match starts remotely"""
         print(f"receive_start called with code: {start_status.code}")
         
+        # Only accept match if we're actively waiting for one
         if start_status.code == '2':  # Match started
             if self.waiting_for_opponent:
-                # We were waiting for a match
-                self.show_message("Partida encontrada!")
-                self.handle_match_start(start_status)
-            elif not self.match_in_progress:
-                # We weren't actively looking but can join
-                self.show_message("Partida encontrada! Iniciando jogo...")
-                self.waiting_for_opponent = True  # Set this so handle_match_start works
+                # We were actively waiting for a match
+                self.waiting_message.config(text="Partida encontrada!")
                 self.handle_match_start(start_status)
             else:
-                # Already in a match, ignore
-                print("Já em uma partida, ignorando nova solicitação")
+                # We weren't looking for a match, so decline
+                print("Outro jogador iniciou uma partida, mas você não está procurando.")
+                return
         else:
             print(f"receive_start chamado com código inesperado: {start_status.code}")
 
     def receive_move(self, move):
         """DOG Framework method - called when receiving opponent's move"""
+        if not self.match_in_progress:
+            print("Recebido movimento, mas não há partida em andamento.")
+            return
+            
         result = self.game.receive_move(move)
     
         if result == 'game_started':
@@ -746,10 +755,16 @@ class AdasLibraryInterface(DogPlayerInterface):
         if self.match_in_progress:
             self.show_message("O oponente abandonou a partida!")
             self.match_in_progress = False
+            self.waiting_for_opponent = False
+            self.game.waiting_for_match = False
         
             # Show game over screen with withdrawal message
             self.result_label.config(text="Partida encerrada - Oponente desistiu")
             self.show_screen("game_over")
+        elif self.waiting_for_opponent:
+            # If we were waiting for a match and the other player disconnected
+            self.show_message("Um jogador desconectou durante a busca por partida.")
+            self.waiting_message.config(text="Continuando a busca por jogadores...")
         else:
             print("Notificação de abandono recebida, mas não há partida em andamento")
     
@@ -764,7 +779,7 @@ class AdasLibraryInterface(DogPlayerInterface):
     
     def clear_selections(self):
         # Clear card selection
-        if self.selected_card_index is not None:
+        if self.selected_card_index is not None and self.selected_card_index < len(self.card_widgets):
             self.card_widgets[self.selected_card_index].config(
                 highlightbackground="black", highlightthickness=3)
         self.selected_card_index = None
@@ -819,6 +834,8 @@ class AdasLibraryInterface(DogPlayerInterface):
     def end_game(self, winner):
         self.result_label.config(text=f"Vencedor: {winner}")
         self.match_in_progress = False
+        self.waiting_for_opponent = False
+        self.game.waiting_for_match = False
         self.show_screen("game_over")
     
     def reset_game(self):

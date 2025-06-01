@@ -20,28 +20,23 @@ class Game:
         """Set reference to DOG interface for network communication"""
         self.dog_interface = dog_interface
     
-    def request_match(self):
-        """Request to join a match - implements proper matchmaking"""
+    def start_match_request(self, num_players=2):
+        """Request to start a match using DOG's proper matchmaking"""
         if not self.dog_interface:
             return False
-        
+    
         if self.waiting_for_match:
             return False  # Already waiting
-        
+    
         self.waiting_for_match = True
         self.game_state = 1  # waiting_for_opponent
-        
-        # Send match request through DOG
-        match_request = {
-            'action': 'match_request',
-            'player_id': self.local_player_id,
-            'timestamp': random.randint(1000, 9999)  # Simple timestamp
-        }
-        
-        if hasattr(self.dog_interface, 'send_move'):
-            self.dog_interface.send_move(match_request)
-        
-        return True
+    
+        # Use DOG's start_match method instead of send_move
+        if hasattr(self.dog_interface, 'start_match'):
+            start_status = self.dog_interface.start_match(num_players)
+            return start_status
+    
+        return False
     
     def initialize_players_with_dog(self, start_status):
         """Initialize players using DOG StartStatus"""
@@ -325,24 +320,16 @@ class Game:
     def receive_move(self, move_data):
         """Process a move received from remote player"""
         action = move_data.get('action', '')
-        
-        if action == 'match_request':
-            # Another player is requesting a match
-            if self.waiting_for_match:
-                # Both players want to play - start the match
-                return 'start_match'
-            else:
-                # Store the request and wait for local player to also request
-                return 'opponent_waiting'
-        elif action == 'initial_state':
+    
+        if action == 'initial_state':
             self.receive_initial_state(move_data)
             return 'game_started'
         elif action == 'play_card':
             card_type = move_data.get('card_type', '')
             target_data = move_data.get('target_data', [])
-            
+        
             self.apply_remote_card_effect(card_type, target_data)
-            
+        
             match_status = move_data.get('match_status', '')
             if match_status == 'finished':
                 self.marcar_jogada_finalizada()
@@ -353,5 +340,5 @@ class Game:
         elif action == 'discard_card':
             self.trocar_turno_jogador()
             return 'continue'
-        
+    
         return 'continue'

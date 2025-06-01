@@ -225,7 +225,7 @@ class AdasLibraryInterface(DogPlayerInterface):
             self.connection_status.config(fg="red")
     
     def request_match(self):
-        """Request to join a match with proper matchmaking"""
+        """Request to join a match using DOG's proper matchmaking"""
         if not self.is_connected:
             self.connection_status.config(text="Você precisa estar conectado!", fg="red")
             return
@@ -238,13 +238,20 @@ class AdasLibraryInterface(DogPlayerInterface):
         self.waiting_for_opponent = True
         self.show_screen("waiting")
         
-        # Request match through game logic
-        success = self.game.request_match()
+        # Use DOG's start_match method directly
+        if self.dog_actor:
+            start_status = self.dog_actor.start_match(2)  # 2 players
         
-        if success:
-            self.waiting_message.config(text="Procurando por outro jogador...")
+            # Check the result
+            if start_status.code == '2':  # Match started
+                self.handle_match_start(start_status)
+            elif start_status.code == '1':  # Waiting for more players
+                self.waiting_message.config(text="Aguardando outros jogadores...")
+            else:  # Error (code '0' - offline)
+                self.waiting_message.config(text="Erro: Você está offline")
+                self.cancel_match_request()
         else:
-            self.waiting_message.config(text="Erro ao procurar partida")
+            self.waiting_message.config(text="Erro ao conectar com o servidor")
             self.cancel_match_request()
     
     def cancel_match_request(self):
@@ -635,19 +642,12 @@ class AdasLibraryInterface(DogPlayerInterface):
     def receive_move(self, move):
         """DOG Framework method - called when receiving opponent's move"""
         result = self.game.receive_move(move)
-        
-        if result == 'start_match':
-            # Both players want to play - start match
-            start_status = self.dog_actor.start_match(2)
-            if start_status.code == '2':
-                self.handle_match_start(start_status)
-        elif result == 'opponent_waiting':
-            self.waiting_message.config(text="Oponente encontrado! Aguarde...")
-        elif result == 'game_started':
+    
+        if result == 'game_started':
             self.initialize_game_display()
             self.show_screen("playing")
             self.update_display()
-            
+        
             if self.game.local_player.get_is_turn():
                 self.show_message("Sua vez! Selecione uma carta e depois um livro para jogar.")
             else:
@@ -658,7 +658,7 @@ class AdasLibraryInterface(DogPlayerInterface):
             self.end_game(winner_name)
         elif result == 'continue':
             self.update_display()
-            
+        
             if self.game.local_player.get_is_turn():
                 self.show_message("Sua vez! Selecione uma carta e depois um livro para jogar.")
             else:

@@ -234,19 +234,21 @@ class AdasLibraryInterface(DogPlayerInterface):
             self.connection_status.config(text="Já existe uma partida em andamento!", fg="red")
             return
         
-        # Set waiting state
+        # Set waiting state BEFORE calling start_match
         self.waiting_for_opponent = True
         self.show_screen("waiting")
         
-        # Use DOG's start_match method directly
+        # Use DOG's start_match method
         if self.dog_actor:
             start_status = self.dog_actor.start_match(2)  # 2 players
         
             # Check the result
-            if start_status.code == '2':  # Match started
+            if start_status.code == '2':  # Match started immediately
+                self.waiting_message.config(text="Partida encontrada!")
                 self.handle_match_start(start_status)
             elif start_status.code == '1':  # Waiting for more players
                 self.waiting_message.config(text="Aguardando outros jogadores...")
+                # The polling thread will call receive_start() when a match is found
             else:  # Error (code '0' - offline)
                 self.waiting_message.config(text="Erro: Você está offline")
                 self.cancel_match_request()
@@ -262,12 +264,19 @@ class AdasLibraryInterface(DogPlayerInterface):
     
     def handle_match_start(self, start_status):
         """Handle when a match actually starts"""
+        print(f"handle_match_start called with {len(start_status.players)} players")
+        
+        if self.match_in_progress:
+            print("Já existe uma partida em andamento!")
+            return
+        
         self.match_in_progress = True
         self.waiting_for_opponent = False
         
         success = self.game.initialize_players_with_dog(start_status)
         
         if success:
+            print("Jogo inicializado com sucesso")
             self.initialize_game_display()
             self.show_screen("playing")
             self.update_display()
@@ -278,8 +287,10 @@ class AdasLibraryInterface(DogPlayerInterface):
             else:
                 self.show_message("Aguardando o oponente...")
         else:
+            print("Erro ao inicializar o jogo!")
             self.show_message("Erro ao inicializar o jogo!")
             self.match_in_progress = False
+            self.cancel_match_request()
     
     def send_initial_game_state(self):
         if self.dog_actor and self.game.local_player:
@@ -632,12 +643,23 @@ class AdasLibraryInterface(DogPlayerInterface):
     
     def receive_start(self, start_status):
         """DOG Framework method - called when match starts remotely"""
-        if self.waiting_for_opponent:
-            self.show_message("Partida encontrada!")
-            self.handle_match_start(start_status)
+        print(f"receive_start called with code: {start_status.code}")
+        
+        if start_status.code == '2':  # Match started
+            if self.waiting_for_opponent:
+                # We were waiting for a match
+                self.show_message("Partida encontrada!")
+                self.handle_match_start(start_status)
+            elif not self.match_in_progress:
+                # We weren't actively looking but can join
+                self.show_message("Partida encontrada! Iniciando jogo...")
+                self.waiting_for_opponent = True  # Set this so handle_match_start works
+                self.handle_match_start(start_status)
+            else:
+                # Already in a match, ignore
+                print("Já em uma partida, ignorando nova solicitação")
         else:
-            # Someone else started a match, but we're not waiting
-            self.show_message("Outro jogador iniciou uma partida, mas você não está procurando.")
+            print(f"receive_start chamado com código inesperado: {start_status.code}")
 
     def receive_move(self, move):
         """DOG Framework method - called when receiving opponent's move"""
@@ -666,12 +688,15 @@ class AdasLibraryInterface(DogPlayerInterface):
 
     def receive_withdrawal_notification(self):
         """DOG Framework method - called when opponent withdraws"""
-        self.show_message("O oponente abandonou a partida!")
-        self.match_in_progress = False
+        if self.match_in_progress:
+            self.show_message("O oponente abandonou a partida!")
+            self.match_in_progress = False
         
-        # Show game over screen with withdrawal message
-        self.result_label.config(text="Partida encerrada - Oponente desistiu")
-        self.show_screen("game_over")
+            # Show game over screen with withdrawal message
+            self.result_label.config(text="Partida encerrada - Oponente desistiu")
+            self.show_screen("game_over")
+        else:
+            print("Notificação de abandono recebida, mas não há partida em andamento")
     
     def get_player_name_by_id(self, player_id):
         """Get player name by their ID"""

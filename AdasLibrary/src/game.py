@@ -40,20 +40,31 @@ class Game:
     
     def initialize_players_with_dog(self, start_status):
         """Initialize players using DOG StartStatus"""
+        print(f"Inicializando jogadores com {len(start_status.players)} jogadores")
+        
         players = start_status.players
         local_id = start_status.local_id
+        
+        if len(players) < 2:
+            print("Número insuficiente de jogadores!")
+            return False
         
         local_info = None
         remote_info = None
         
         for player_info in players:
-            name, player_id, order = player_info[0], player_info[1], int(player_info[2])
-            if player_id == local_id:
-                local_info = (name, player_id, order)
-            else:
-                remote_info = (name, player_id, order)
+            if len(player_info) >= 3:
+                name, player_id, order = player_info[0], player_info[1], int(player_info[2])
+                print(f"Jogador: {name}, ID: {player_id}, Ordem: {order}")
+                
+                if player_id == local_id:
+                    local_info = (name, player_id, order)
+                else:
+                    remote_info = (name, player_id, order)
         
         if local_info and remote_info:
+            print(f"Jogador local: {local_info[0]}, Jogador remoto: {remote_info[0]}")
+            
             self.local_player = Player(local_info[0])
             self.local_player_id = local_info[1]
             self.remote_player = Player(remote_info[0])
@@ -64,7 +75,10 @@ class Game:
             self.local_player.set_is_turn(local_starts)
             self.remote_player.set_is_turn(not local_starts)
             
+            print(f"Turno inicial: {'Local' if local_starts else 'Remoto'}")
+            
             if local_starts:
+                print("Inicializando estado do jogo e enviando para o oponente")
                 self.initialize_game_state()
                 self.send_initial_state()
             
@@ -72,6 +86,7 @@ class Game:
             self.waiting_for_match = False
             return True
         
+        print("Erro: Não foi possível identificar jogadores local e remoto")
         return False
     
     def initialize_game_state(self):

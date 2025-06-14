@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import random
 
 class ActionCard(ABC):
     def __init__(self, description):
@@ -147,3 +148,162 @@ class MoveMasterBook(ActionCard):
                 direction_str = "left" if direction == 0 else "right"
                 return master_display.move_book(book_index, direction_str, spaces)
         return False
+
+class ChangeBookColorRandom(ActionCard):
+    def __init__(self):
+        super().__init__("Trocar cor do livro por cor aleatória")
+    
+    def apply(self, owner, target=None):
+        """Change the color of selected book to a random color (excluding current color)"""
+        if target and len(target) >= 1:
+            book_index = target[0]
+            display = owner.get_display().get_display()
+            
+            if not (0 <= book_index < len(display)):
+                return False
+            
+            book = display[book_index]
+            current_color = book.get_color()
+            
+            # All available colors except the current one
+            colors = ["vermelho", "azul_claro", "cinza", "marrom", "amarelo", "azul_escuro"]
+            available_colors = [color for color in colors if color != current_color]
+            
+            if available_colors:
+                new_color = random.choice(available_colors)
+                book.set_color(new_color)
+                return True
+        return False
+
+class MoveBookOneRight(ActionCard):
+    def __init__(self):
+        super().__init__("Mover livro 1 espaço à direita")
+    
+    def apply(self, owner, target=None):
+        """Move a book 1 space to the right"""
+        if target and len(target) >= 1:
+            book_index = target[0]
+            display = owner.get_display().get_display()
+            
+            if not (0 <= book_index < len(display)):
+                return False
+            
+            # Can't move if already at the rightmost position
+            if book_index >= len(display) - 1:
+                return False
+            
+            # Move book 1 space to the right
+            book = display.pop(book_index)
+            display.insert(book_index + 1, book)
+            return True
+        return False
+
+class ChangeBookColorRandomly(ActionCard):
+    def __init__(self):
+        super().__init__("Trocar cor do livro aleatoriamente")
+    
+    def apply(self, owner, target=None):
+        """Randomly change the color of selected book"""
+        if target and len(target) >= 1:
+            book_index = target[0]
+            display = owner.get_display().get_display()
+            
+            if not (0 <= book_index < len(display)):
+                return False
+            
+            book = display[book_index]
+            colors = ["vermelho", "azul_claro", "cinza", "marrom", "amarelo", "azul_escuro"]
+            new_color = random.choice(colors)
+            book.set_color(new_color)
+            return True
+        return False
+
+class ChangeParityBooksColor(ActionCard):
+    def __init__(self):
+        super().__init__("Trocar cor de livros com mesma paridade")
+    
+    def apply(self, owner, target=None):
+        """Change color of all books with same parity index as selected book"""
+        if target and len(target) >= 1:
+            book_index = target[0]
+            display = owner.get_display().get_display()
+            
+            if not (0 <= book_index < len(display)):
+                return False
+            
+            # Determine parity (even or odd)
+            parity = book_index % 2
+            colors = ["vermelho", "azul_claro", "cinza", "marrom", "amarelo", "azul_escuro"]
+            
+            # Change color of all books with same parity
+            changed = False
+            for i, book in enumerate(display):
+                if i % 2 == parity:
+                    new_color = random.choice(colors)
+                    book.set_color(new_color)
+                    changed = True
+            
+            return changed
+        return False
+
+class MoveMasterBookToSequenceSide(ActionCard):
+    def __init__(self):
+        super().__init__("Mover livro mestre para lado com mais sequência")
+    
+    def get_tipo_alvo(self):
+        return "master"
+    
+    def apply(self, owner, target=None):
+        """Move master book 1 space towards the side with more consecutive same-color books"""
+        if target and len(target) >= 2:
+            book_index, master_display = target[0], target[1]
+            
+            if not (0 <= book_index < len(master_display.main_display)):
+                return False
+            
+            # Get owner's display to analyze sequences
+            owner_display = owner.get_display().get_display()
+            owner_colors = [book.get_color() for book in owner_display]
+            
+            # Count consecutive sequences from left and right
+            left_sequence = self._count_sequence_from_left(owner_colors)
+            right_sequence = self._count_sequence_from_right(owner_colors)
+            
+            # Determine direction: move towards side with longer sequence
+            if left_sequence > right_sequence:
+                direction = "left"
+            elif right_sequence > left_sequence:
+                direction = "right"
+            else:
+                # If equal, choose randomly
+                direction = random.choice(["left", "right"])
+            
+            # Move the master book 1 space in the determined direction
+            return master_display.move_book(book_index, direction, 1)
+        return False
+    
+    def _count_sequence_from_left(self, colors):
+        """Count consecutive same-color books from the left"""
+        if not colors:
+            return 0
+        
+        count = 1
+        for i in range(1, len(colors)):
+            if colors[i] == colors[i-1]:
+                count += 1
+            else:
+                break
+        return count
+    
+    def _count_sequence_from_right(self, colors):
+        """Count consecutive same-color books from the right"""
+        if not colors:
+            return 0
+        
+        count = 1
+        for i in range(len(colors) - 2, -1, -1):
+            if colors[i] == colors[i+1]:
+                count += 1
+            else:
+                break
+        return count

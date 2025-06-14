@@ -564,53 +564,19 @@ class AdasLibraryInterface(DogPlayerInterface):
         if not card:
             return
         
-        # Handle different card types
-        if isinstance(card, SwapWithSpaces):
-            self.handle_swap_with_spaces(index, book_type)
-        elif isinstance(card, MoveBookSpaces):
-            self.handle_move_book_spaces(index, book_type)
-        elif isinstance(card, MoveToEdge):
-            self.handle_move_to_edge(index, book_type)
-        elif isinstance(card, SwapEdges):
-            self.handle_swap_edges()
-        elif isinstance(card, SwapWithOpponent):
-            self.handle_swap_with_opponent(index, book_type)
-        elif isinstance(card, MoveMasterBook):
-            self.handle_move_master_book(index, book_type)
-    
-    def handle_move_book_spaces(self, index, book_type):
-        # Ask for number of spaces to move
-        spaces = simpledialog.askinteger("Mover Livro", 
-                                        "Quantos espaços mover? (negativo = esquerda, positivo = direita)",
-                                        minvalue=-9, maxvalue=9)
-        if spaces is not None:
-            target_data = [index, spaces]
+        # All new cards have simple, hardcoded effects - just apply with the book index
+        if isinstance(card, (ChangeBookColorRandom, MoveBookOneRight, ChangeBookColorRandomly, ChangeParityBooksColor)):
+            target_data = [index]
             self.apply_card_with_data(target_data)
-    
-    def handle_move_to_edge(self, index, book_type):
-        # Ask which edge
-        edge = messagebox.askyesno("Mover para Extremidade", 
-                                  "Mover para a direita? (Não = esquerda)")
-        edge_value = 1 if edge else 0
-        target_data = [index, edge_value]
-        self.apply_card_with_data(target_data)
-    
-    def handle_swap_edges(self):
-        # No additional input needed
-        target_data = []
-        self.apply_card_with_data(target_data)
-    
-    def handle_move_master_book(self, index, book_type):
-        # Ask for direction and spaces
-        direction = messagebox.askyesno("Mover Livro Mestre", 
-                                       "Mover para a direita? (Não = esquerda)")
-        direction_value = 1 if direction else 0
-        
-        spaces = simpledialog.askinteger("Mover Livro Mestre", 
-                                        "Quantos espaços mover? (1 ou 2)",
-                                        minvalue=1, maxvalue=2)
-        if spaces is not None:
-            target_data = [index, direction_value, spaces]
+        elif isinstance(card, SwapWithOpponent):
+            # Opponent swap still works the same way
+            if book_type == "your":
+                opponent_index = index  # Same position = directly opposite
+                target_data = [index, opponent_index]
+                self.apply_card_with_data(target_data)
+        elif isinstance(card, MoveMasterBookToSequenceSide):
+            # Master book movement is now automatic
+            target_data = [index]
             self.apply_card_with_data(target_data)
     
     def apply_card_with_data(self, target_data):

@@ -9,22 +9,22 @@ class Deck:
         self.criar_deck()
 
     def criar_deck(self):
-        """Create the action card deck"""
+        """Create the action card deck with new card types"""
         cards = []
         
-        # Add multiple instances of each card type
+        # Add multiple instances of each new card type
         for _ in range(8):
-            cards.append(SwapWithSpaces())
+            cards.append(ChangeBookColorRandom())
         for _ in range(8):
-            cards.append(MoveBookSpaces())
+            cards.append(MoveBookOneRight())
         for _ in range(6):
-            cards.append(MoveToEdge())
-        for _ in range(4):
-            cards.append(SwapEdges())
+            cards.append(ChangeBookColorRandomly())
+        for _ in range(6):
+            cards.append(ChangeParityBooksColor())
         for _ in range(6):
             cards.append(SwapWithOpponent())
         for _ in range(4):
-            cards.append(MoveMasterBook())
+            cards.append(MoveMasterBookToSequenceSide())
         
         random.shuffle(cards)
         self.action_cards = cards

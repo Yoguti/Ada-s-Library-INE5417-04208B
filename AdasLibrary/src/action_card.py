@@ -180,7 +180,7 @@ class MoveBookOneRight(ActionCard):
         super().__init__("Mover livro 1 espaço à direita")
     
     def apply(self, owner, target=None):
-        """Move a book 1 space to the right"""
+        """Move a book 1 space to the right with circular wrapping"""
         if target and len(target) >= 1:
             book_index = target[0]
             display = owner.get_display().get_display()
@@ -188,13 +188,22 @@ class MoveBookOneRight(ActionCard):
             if not (0 <= book_index < len(display)):
                 return False
             
-            # Can't move if already at the rightmost position
-            if book_index >= len(display) - 1:
-                return False
-            
-            # Move book 1 space to the right
+            # Remove the book from current position
             book = display.pop(book_index)
-            display.insert(book_index + 1, book)
+            
+            # Calculate new position with circular wrapping
+            if book_index >= len(display):  # Now len(display) is one less after pop
+                # Wrap around to the beginning
+                new_index = 0
+            else:
+                # Move one position to the right
+                new_index = book_index + 1
+                # If this would exceed the length, wrap to beginning
+                if new_index > len(display):
+                    new_index = 0
+            
+            # Insert book at new position
+            display.insert(new_index, book)
             return True
         return False
 
@@ -248,13 +257,13 @@ class ChangeParityBooksColor(ActionCard):
 
 class MoveMasterBookToSequenceSide(ActionCard):
     def __init__(self):
-        super().__init__("Mover livro mestre para lado com mais sequência")
+        super().__init__("Mover livro mestre baseado em sequências")
     
     def get_tipo_alvo(self):
         return "master"
     
     def apply(self, owner, target=None):
-        """Move master book 1 space towards the side with more consecutive same-color books"""
+        """Move master book based on consecutive color patterns in player's display"""
         if target and len(target) >= 2:
             book_index, master_display = target[0], target[1]
             
@@ -263,47 +272,47 @@ class MoveMasterBookToSequenceSide(ActionCard):
             
             # Get owner's display to analyze sequences
             owner_display = owner.get_display().get_display()
-            owner_colors = [book.get_color() for book in owner_display]
             
-            # Count consecutive sequences from left and right
-            left_sequence = self._count_sequence_from_left(owner_colors)
-            right_sequence = self._count_sequence_from_right(owner_colors)
+            if len(owner_display) == 0:
+                return False
             
-            # Determine direction: move towards side with longer sequence
-            if left_sequence > right_sequence:
-                direction = "left"
-            elif right_sequence > left_sequence:
+            # Split display into first half and second half
+            mid_point = len(owner_display) // 2
+            first_half = owner_display[:mid_point] if mid_point > 0 else []
+            second_half = owner_display[mid_point:]
+            
+            # Count consecutive sequences in each half
+            first_half_consecutive = self._count_max_consecutive_sequence(first_half)
+            second_half_consecutive = self._count_max_consecutive_sequence(second_half)
+            
+            # Determine movement direction based on which half has more consecutive books
+            if second_half_consecutive > first_half_consecutive:
+                # Second half has more consecutive books - move to opposite side (right)
                 direction = "right"
+            elif first_half_consecutive > second_half_consecutive:
+                # First half has more consecutive books - move to same side (left)
+                direction = "left"
             else:
-                # If equal, choose randomly
-                direction = random.choice(["left", "right"])
+                # Equal consecutive counts - choose randomly or default to right
+                direction = "right"
             
             # Move the master book 1 space in the determined direction
             return master_display.move_book(book_index, direction, 1)
         return False
     
-    def _count_sequence_from_left(self, colors):
-        """Count consecutive same-color books from the left"""
-        if not colors:
+    def _count_max_consecutive_sequence(self, books):
+        """Count the maximum consecutive sequence of same-color books in a list"""
+        if not books:
             return 0
         
-        count = 1
-        for i in range(1, len(colors)):
-            if colors[i] == colors[i-1]:
-                count += 1
-            else:
-                break
-        return count
-    
-    def _count_sequence_from_right(self, colors):
-        """Count consecutive same-color books from the right"""
-        if not colors:
-            return 0
+        max_consecutive = 1
+        current_consecutive = 1
         
-        count = 1
-        for i in range(len(colors) - 2, -1, -1):
-            if colors[i] == colors[i+1]:
-                count += 1
+        for i in range(1, len(books)):
+            if books[i].get_color() == books[i-1].get_color():
+                current_consecutive += 1
+                max_consecutive = max(max_consecutive, current_consecutive)
             else:
-                break
-        return count
+                current_consecutive = 1
+        
+        return max_consecutive

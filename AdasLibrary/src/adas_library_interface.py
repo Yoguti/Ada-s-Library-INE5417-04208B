@@ -5,6 +5,8 @@ from action_card import *
 from dog.dog_actor import DogActor
 from dog.dog_interface import DogPlayerInterface
 from dog.start_status import StartStatus
+import threading
+import time
 
 class AdasLibraryInterface(DogPlayerInterface):
     def __init__(self):
@@ -20,7 +22,13 @@ class AdasLibraryInterface(DogPlayerInterface):
         self.player_name = ""
         self.is_connected = False
         self.match_in_progress = False
-        self.waiting_for_opponent = False
+        self.searching_for_players = False
+        self.connection_retry_count = 0
+        self.max_connection_retries = 5
+        
+        # Threading control
+        self.search_thread = None
+        self.stop_search = False
         
         self.setup_ui()
     
@@ -31,14 +39,12 @@ class AdasLibraryInterface(DogPlayerInterface):
         self.root.resizable(False, False)
         self.root.configure(bg="#315931")
         
-        # Create screens
+        # Create screens (remove waiting_screen)
         self.welcome_screen = tk.Frame(self.root, bg="#315931")
-        self.waiting_screen = tk.Frame(self.root, bg="#315931")
         self.game_screen = tk.Frame(self.root, bg="#315931")
         self.game_over_screen = tk.Frame(self.root, bg="#315931")
         
         self.setup_welcome_screen()
-        self.setup_waiting_screen()
         self.setup_game_screen()
         self.setup_game_over_screen()
         
@@ -65,45 +71,29 @@ class AdasLibraryInterface(DogPlayerInterface):
         self.name_entry.pack(pady=20)
         self.name_entry.focus_set()
         
-        # Connect button
-        connect_button = tk.Button(self.welcome_screen, text="Conectar ao Servidor", 
-                                  font=("Helvetica", 25, "bold"), bg="#457b9d", fg="white",
-                                  padx=20, pady=10, relief=tk.RAISED, bd=5,
-                                  command=self.connect_to_server)
-        connect_button.pack(pady=0)
+        # Single "Iniciar Partida" button
+        self.start_game_button = tk.Button(self.welcome_screen, text="Iniciar Partida", 
+                                          font=("Helvetica", 33, "bold"), bg="#A8DADC", fg="#1D3557",
+                                          padx=30, pady=15, relief=tk.RAISED, bd=5,
+                                          command=self.iniciar_partida)
+        self.start_game_button.pack(pady=20)
         
-        # Connection status
+        # Status messages
         self.connection_status = tk.Label(self.welcome_screen, text="", 
                                          font=("Helvetica", 18), bg="#315931", fg="yellow")
-        self.connection_status.pack(pady=0)
+        self.connection_status.pack(pady=10)
         
-        # Start button
-        self.start_button = tk.Button(self.welcome_screen, text="Procurar Partida", 
-                                    font=("Helvetica", 33, "bold"), bg="#A8DADC", fg="#1D3557",
-                                    padx=30, pady=15, relief=tk.RAISED, bd=5,
-                                    command=self.request_match, state=tk.DISABLED)
-        self.start_button.pack(pady=0)
+        self.search_status = tk.Label(self.welcome_screen, text="", 
+                                     font=("Helvetica", 18), bg="#315931", fg="cyan")
+        self.search_status.pack(pady=5)
         
-        self.name_entry.bind("<Return>", lambda event: self.connect_to_server())
-    
-    def setup_waiting_screen(self):
-        # Title
-        waiting_title = tk.Label(self.waiting_screen, text="Aguardando Oponente", 
-                                font=("Helvetica", 48, "bold"), bg="#315931", fg="white")
-        waiting_title.pack(pady=(200, 50))
+        # Cancel button (initially hidden)
+        self.cancel_button = tk.Button(self.welcome_screen, text="Cancelar", 
+                                      font=("Helvetica", 20, "bold"), bg="#E63946", fg="white",
+                                      padx=20, pady=10, relief=tk.RAISED, bd=5,
+                                      command=self.cancel_game_initiation)
         
-        # Animated dots or spinner could go here
-        self.waiting_message = tk.Label(self.waiting_screen, 
-                                       text="Procurando por outro jogador...", 
-                                       font=("Helvetica", 24), bg="#315931", fg="yellow")
-        self.waiting_message.pack(pady=20)
-        
-        # Cancel button
-        cancel_button = tk.Button(self.waiting_screen, text="Cancelar", 
-                                 font=("Helvetica", 20, "bold"), bg="#E63946", fg="white",
-                                 padx=20, pady=10, relief=tk.RAISED, bd=5,
-                                 command=self.cancel_match_request)
-        cancel_button.pack(pady=50)
+        self.name_entry.bind("<Return>", lambda event: self.iniciar_partida())
     
     def setup_game_screen(self):
         # Message frame
@@ -122,8 +112,7 @@ class AdasLibraryInterface(DogPlayerInterface):
         self.opponent_frame = tk.Frame(self.game_screen, bg="#315931", pady=15)
         self.objective_frame = tk.Frame(self.game_screen, bg="#315931", pady=15)
         self.your_books_frame = tk.Frame(self.game_screen, bg="#315931", pady=15)
-        self.cards_frame = tk.Frame(self.game_screen, bg="#315931", pady=15)
-        self.buttons_frame = tk.Frame(self.game_screen, bg="#315931", pady=15)
+        self.cards_container = tk.Frame(self.game_screen, bg="#315931", pady=15)
         
         # Labels
         tk.Label(self.opponent_frame, text="Livros do Oponente", font="Helvetica 30", 
@@ -138,17 +127,26 @@ class AdasLibraryInterface(DogPlayerInterface):
                 bg="#315931", fg="white").pack()
         self.your_books_frame.pack(pady=(0, 10))
         
-        tk.Label(self.cards_frame, text="Cartas", font="Helvetica 30", 
-                bg="#315931", fg="white").pack()
-        self.cards_frame.pack(pady=(0, 10))
+        # Cards section with discard button on the right
+        cards_label = tk.Label(self.cards_container, text="Cartas", font="Helvetica 30", 
+                              bg="#315931", fg="white")
+        cards_label.pack()
         
-        self.buttons_frame.pack(pady=30)
+        # Horizontal container for cards and discard button
+        self.cards_and_discard_frame = tk.Frame(self.cards_container, bg="#315931")
+        self.cards_and_discard_frame.pack(pady=(0, 10))
         
-        # Buttons
-        self.discard_button = tk.Button(self.buttons_frame, text="Descartar", bg="#FF6B6B", fg="white",
-                                       font="Helvetica 30", padx=20, pady=10,
-                                       command=self.discard_card)
-        self.discard_button.pack(side=tk.LEFT, padx=20)
+        # Cards frame (left side)
+        self.cards_frame = tk.Frame(self.cards_and_discard_frame, bg="#315931")
+        self.cards_frame.pack(side=tk.LEFT, padx=(0, 20))
+        
+        # Discard button (right side)
+        self.discard_button = tk.Button(self.cards_and_discard_frame, text="Descartar", 
+                                       bg="#FF6B6B", fg="white", font="Helvetica 30", 
+                                       padx=20, pady=10, command=self.discard_card)
+        self.discard_button.pack(side=tk.RIGHT, padx=20)
+        
+        self.cards_container.pack(pady=(0, 10))
         
         # Color mapping
         self.colors = {
@@ -186,83 +184,138 @@ class AdasLibraryInterface(DogPlayerInterface):
     
     def show_screen(self, screen_name):
         self.welcome_screen.pack_forget()
-        self.waiting_screen.pack_forget()
         self.game_screen.pack_forget()
         self.game_over_screen.pack_forget()
         
         if screen_name == "welcome":
             self.welcome_screen.pack(fill=tk.BOTH, expand=True)
-        elif screen_name == "waiting":
-            self.waiting_screen.pack(fill=tk.BOTH, expand=True)
         elif screen_name == "playing":
             self.game_screen.pack(fill=tk.BOTH, expand=True)
         elif screen_name == "game_over":
             self.game_over_screen.pack(fill=tk.BOTH, expand=True)
     
-    def connect_to_server(self):
-        """Connect to the DOG server with player name"""
+    def iniciar_partida(self):
+        """Streamlined game initiation: connect and search for players"""
         player_name = self.name_entry.get().strip()
         if not player_name:
             self.connection_status.config(text="Por favor, digite seu nome!", fg="red")
             return
         
+        if self.searching_for_players:
+            self.connection_status.config(text="Já procurando por partida!", fg="yellow")
+            return
+        
         self.player_name = player_name
+        self.connection_retry_count = 0
+        self.searching_for_players = True
+        self.stop_search = False
+        
+        # Disable start button and show cancel button
+        self.start_game_button.config(state=tk.DISABLED)
+        self.name_entry.config(state=tk.DISABLED)
+        
+        # Start connection attempt with retry loop
+        self.attempt_connection()
+    
+    def attempt_connection(self):
+        """Attempt to connect to server with retry logic"""
+        self.connection_status.config(text="Tentando conectar ao servidor...", fg="yellow")
         
         # Initialize DOG Actor
         self.dog_actor = DogActor()
-        connection_result = self.dog_actor.initialize(player_name, self)
-        
-        self.connection_status.config(text=connection_result)
+        connection_result = self.dog_actor.initialize(self.player_name, self)
         
         if "Conectado" in connection_result:
             self.is_connected = True
-            self.start_button.config(state=tk.NORMAL)
-            self.name_entry.config(state=tk.DISABLED)
-            self.connection_status.config(fg="green")
+            self.connection_status.config(text="✓ Conectado ao servidor com sucesso!", fg="green")
             self.game.set_dog_interface(self.dog_actor)
+            
+            # Start player search after successful connection
+            self.root.after(1000, self.start_player_search)
         else:
-            self.is_connected = False
-            self.start_button.config(state=tk.DISABLED)
-            self.connection_status.config(fg="red")
+            self.connection_retry_count += 1
+            if self.connection_retry_count < self.max_connection_retries and not self.stop_search:
+                self.connection_status.config(
+                    text=f"Falha na conexão. Tentativa {self.connection_retry_count}/{self.max_connection_retries}. Tentando novamente...", 
+                    fg="orange"
+                )
+                # Retry after 2 seconds
+                self.root.after(2000, self.attempt_connection)
+            else:
+                self.connection_status.config(text="Falha ao conectar após várias tentativas.", fg="red")
+                self.cancel_game_initiation()
     
-    def request_match(self):
-        """Request to join a match using DOG's proper matchmaking"""
-        if not self.is_connected:
-            self.connection_status.config(text="Você precisa estar conectado!", fg="red")
+    def start_player_search(self):
+        """Start searching for other players"""
+        if not self.is_connected or self.stop_search:
             return
         
-        if self.match_in_progress:
-            self.connection_status.config(text="Já existe uma partida em andamento!", fg="red")
-            return
+        self.search_status.config(text="Procurando por outros jogadores...", fg="cyan")
         
-        # Set waiting state BEFORE calling start_match
-        self.waiting_for_opponent = True
-        self.game.waiting_for_match = True
-        self.show_screen("waiting")
+        # Start the search thread
+        self.search_thread = threading.Thread(target=self.player_search_loop, daemon=True)
+        self.search_thread.start()
+    
+    def player_search_loop(self):
+        """Continuous loop to search for players every 5 seconds"""
+        while not self.stop_search and self.is_connected:
+            try:
+                # Request match using DOG's matchmaking
+                start_status = self.dog_actor.start_match(2)  # 2 players
+                
+                if start_status.code == '2':  # Match started immediately
+                    self.root.after(0, lambda: self.handle_match_found(start_status))
+                    break
+                elif start_status.code == '1':  # Waiting for more players
+                    # Continue searching - the polling will call receive_start() when found
+                    pass
+                else:  # Error
+                    self.root.after(0, lambda: self.search_status.config(
+                        text="Erro na busca por jogadores. Tentando novamente...", fg="orange"))
+                
+                # Wait 5 seconds before next attempt
+                for i in range(50):  # 50 * 0.1 = 5 seconds, but check stop_search frequently
+                    if self.stop_search:
+                        break
+                    time.sleep(0.1)
+                    
+            except Exception as e:
+                print(f"Erro na busca por jogadores: {e}")
+                if not self.stop_search:
+                    self.root.after(0, lambda: self.search_status.config(
+                        text="Erro na busca. Tentando novamente...", fg="orange"))
+                    time.sleep(5)
+    
+    def handle_match_found(self, start_status):
+        """Handle when a match is found"""
+        self.search_status.config(text="✓ Partida encontrada! Iniciando jogo...", fg="green")
+        self.searching_for_players = False
+        self.stop_search = True
         
-        # Use DOG's start_match method
+        self.handle_match_start(start_status)
+    
+    def cancel_game_initiation(self):
+        """Cancel the game initiation process"""
+        self.stop_search = True
+        self.searching_for_players = False
+        self.is_connected = False
+        
+        # Reset UI
+        self.start_game_button.config(state=tk.NORMAL)
+        self.name_entry.config(state=tk.NORMAL)
+        
+        # Clear status messages
+        self.connection_status.config(text="")
+        self.search_status.config(text="")
+        
+        # Close DOG connection if exists
         if self.dog_actor:
-            start_status = self.dog_actor.start_match(2)  # 2 players
-        
-            # Check the result
-            if start_status.code == '2':  # Match started immediately
-                self.waiting_message.config(text="Partida encontrada!")
-                self.handle_match_start(start_status)
-            elif start_status.code == '1':  # Waiting for more players
-                self.waiting_message.config(text="Aguardando outros jogadores...")
-                # The polling thread will call receive_start() when a match is found
-            else:  # Error (code '0' - offline)
-                self.waiting_message.config(text="Erro: Você está offline")
-                self.cancel_match_request()
-        else:
-            self.waiting_message.config(text="Erro ao conectar com o servidor")
-            self.cancel_match_request()
-    
-    def cancel_match_request(self):
-        """Cancel the match request and return to welcome screen"""
-        self.waiting_for_opponent = False
-        self.game.waiting_for_match = False
-        self.show_screen("welcome")
+            try:
+                # DOG framework cleanup if needed
+                pass
+            except:
+                pass
+            self.dog_actor = None
     
     def handle_match_start(self, start_status):
         """Handle when a match actually starts"""
@@ -274,12 +327,12 @@ class AdasLibraryInterface(DogPlayerInterface):
         
         if len(start_status.players) < 2:
             print("Número insuficiente de jogadores para iniciar partida!")
-            self.waiting_message.config(text="Número insuficiente de jogadores!")
-            self.cancel_match_request()
+            self.search_status.config(text="Número insuficiente de jogadores!")
+            self.cancel_game_initiation()
             return
         
         self.match_in_progress = True
-        self.waiting_for_opponent = False
+        self.searching_for_players = False
         
         success = self.game.initialize_players_with_dog(start_status)
         
@@ -298,7 +351,7 @@ class AdasLibraryInterface(DogPlayerInterface):
             print("Erro ao inicializar o jogo!")
             self.show_message("Erro ao inicializar o jogo!")
             self.match_in_progress = False
-            self.cancel_match_request()
+            self.cancel_game_initiation()
     
     def send_initial_game_state(self):
         if self.dog_actor and self.game.local_player:
@@ -708,12 +761,11 @@ class AdasLibraryInterface(DogPlayerInterface):
         """DOG Framework method - called when match starts remotely"""
         print(f"receive_start called with code: {start_status.code}")
         
-        # Only accept match if we're actively waiting for one
+        # Only accept match if we're actively searching for one
         if start_status.code == '2':  # Match started
-            if self.waiting_for_opponent:
-                # We were actively waiting for a match
-                self.waiting_message.config(text="Partida encontrada!")
-                self.handle_match_start(start_status)
+            if self.searching_for_players:
+                # We were actively searching for a match
+                self.root.after(0, lambda: self.handle_match_found(start_status))
             else:
                 # We weren't looking for a match, so decline
                 print("Outro jogador iniciou uma partida, mas você não está procurando.")
@@ -755,16 +807,16 @@ class AdasLibraryInterface(DogPlayerInterface):
         if self.match_in_progress:
             self.show_message("O oponente abandonou a partida!")
             self.match_in_progress = False
-            self.waiting_for_opponent = False
+            self.searching_for_players = False
+            self.stop_search = True
             self.game.waiting_for_match = False
         
             # Show game over screen with withdrawal message
             self.result_label.config(text="Partida encerrada - Oponente desistiu")
             self.show_screen("game_over")
-        elif self.waiting_for_opponent:
-            # If we were waiting for a match and the other player disconnected
-            self.show_message("Um jogador desconectou durante a busca por partida.")
-            self.waiting_message.config(text="Continuando a busca por jogadores...")
+        elif self.searching_for_players:
+            # If we were searching for a match and the other player disconnected
+            self.search_status.config(text="Um jogador desconectou. Continuando busca...")
         else:
             print("Notificação de abandono recebida, mas não há partida em andamento")
     
@@ -834,24 +886,41 @@ class AdasLibraryInterface(DogPlayerInterface):
     def end_game(self, winner):
         self.result_label.config(text=f"Vencedor: {winner}")
         self.match_in_progress = False
-        self.waiting_for_opponent = False
+        self.searching_for_players = False
+        self.stop_search = True
         self.game.waiting_for_match = False
         self.show_screen("game_over")
     
     def reset_game(self):
+        # Stop any ongoing searches
+        self.stop_search = True
+        self.searching_for_players = False
+        
+        # Reset game state
         self.game = Game()
         self.selected_card_index = None
         self.selected_books = []
         self.selected_target_type = None
         self.awaiting_input = False
         self.match_in_progress = False
-        self.waiting_for_opponent = False
+        self.is_connected = False
+        self.connection_retry_count = 0
         
+        # Reset UI
         self.clear_board()
         self.show_screen("welcome")
         self.name_entry.delete(0, tk.END)
         self.name_entry.config(state=tk.NORMAL)
-        self.start_button.config(state=tk.DISABLED)
+        self.start_game_button.config(state=tk.NORMAL)
+
+        
+        # Clear status messages
+        self.connection_status.config(text="")
+        self.search_status.config(text="")
+        
+        # Close DOG connection
+        if self.dog_actor:
+            self.dog_actor = None
         
         self.show_message("Jogo resetado para o estado inicial.")
     
